@@ -68,6 +68,11 @@ const ALINEAS_74III = {
 /* ---------- Imagens (logo, brasão de Iacanga, marca d'água) ---------- */
 const IMG = (typeof ASSETS !== 'undefined') ? ASSETS
   : (typeof require === 'function' ? (() => { try { return require('./assets.js'); } catch (e) { return {}; } })() : {});
+const REV = (typeof procCorrigido === 'function') ? { procCorrigido }
+  : (typeof require === 'function' ? (() => { try { return require('./revisor.js'); } catch (e) { return {}; } })() : {});
+const setorLic = cfg => has(cfg.nomeLicitacao) ? cfg.nomeLicitacao : 'Secretaria de Licitação';
+/* O número do processo é atribuído pela Licitação: no modo Secretaria não é pendência */
+const numProc = (p, a, cfg) => has(p.numero) ? p.numero : (a && a.simples ? `a ser atribuído pela ${setorLic(cfg)}` : '⟦nº do processo⟧');
 const brasaoURI = cfg => cfg.brasao === 'iacanga' ? IMG.brasaoIacanga : (cfg.brasao || '');
 const brasaoProp = cfg => cfg.brasao === 'iacanga' ? (IMG.brasaoProporcao || 0.845) : (num(cfg.brasaoProp) || 0.85);
 
@@ -98,7 +103,7 @@ const DADOS_IACANGA = {
 function cfgPadrao() {
   return {
     id: 'm_' + uid(), nome: DADOS_IACANGA.nome, ente: DADOS_IACANGA.ente, cnpj: DADOS_IACANGA.cnpj, endereco: DADOS_IACANGA.endereco,
-    fone: DADOS_IACANGA.fone, email: DADOS_IACANGA.email, marcaDagua: true, brasaoProp: '',
+    fone: DADOS_IACANGA.fone, email: DADOS_IACANGA.email, marcaDagua: true, brasaoProp: '', nomeLicitacao: 'Secretaria de Licitação',
     cidade: 'Iacanga', uf: 'SP', comarca: '', ate20mil: true, site: DADOS_IACANGA.site, diario: '', brasao: 'iacanga', plataforma: '',
     regulamento: 'federal', regulamentoTexto: '', dobro: false, desvioAlerta: 30,
     valores: { ano: 2026, norma: 'Decreto nº 12.807, de 29 de dezembro de 2025', d75i: 130984.20, d75ii: 65492.11, d75p7: 10478.74, verbal: 13098.41, tecnico: 392952.63, grandeVulto: 261968421.04, meEpp: 80000 },
@@ -113,7 +118,8 @@ function cfgPadrao() {
 /* Completa perfis salvos por versões anteriores */
 function normalizarCfg(c) {
   const base = cfgPadrao();
-  Object.keys(base).forEach(k => { if (c[k] === undefined) c[k] = (k === 'id' ? c.id : (typeof base[k] === 'object' ? base[k] : '')); });
+  const neutros = { nomeLicitacao: base.nomeLicitacao, marcaDagua: true };
+  Object.keys(base).forEach(k => { if (c[k] === undefined) c[k] = k in neutros ? neutros[k] : (typeof base[k] === 'object' ? base[k] : ''); });
   if (c.marcaDagua === '') c.marcaDagua = true;
   if (String(c.cidade || '').trim().toLowerCase() === 'iacanga') {
     ['cnpj', 'endereco', 'fone', 'email', 'site', 'brasao'].forEach(k => { if (!has(c[k])) c[k] = DADOS_IACANGA[k]; });
@@ -424,7 +430,7 @@ function criterioPadrao(p, h, est, cfg) {
 /* ======================= PEÇAS DO PROCESSO ======================= */
 /* Blocos: title, h, p, li, table, kv, sig, note, pb, space */
 
-function cab(p) { return { proc: ph(p.numero, 'nº do processo') }; }
+function cab(p) { return { proc: numProc(p, a, cfg) }; }
 /* ---------- Itens e lotes ---------- */
 function grupoLotes(p) {
   if (p.objeto.parcelamento !== 'lotes') return null;
@@ -493,7 +499,7 @@ function docDFD(p, cfg, a) {
   const d = p.demanda;
   return { id: 'dfd', titulo: 'Documento de Formalização de Demanda', sigla: 'DFD', fund: 'art. 12, VII, e art. 72, I', blocks: [
     { t: 'title', text: 'DOCUMENTO DE FORMALIZAÇÃO DE DEMANDA', sub: 'Lei nº 14.133/2021, art. 12, VII, e art. 72, I' },
-    { t: 'kv', rows: [['Processo', ph(p.numero, 'nº do processo')], ['Secretaria', ph(d.secretaria, 'secretaria')], ['Unidade requisitante', ph(d.unidade, 'unidade requisitante')], ['Responsável', `${ph(d.responsavel, 'nome do responsável')} — ${ph(d.cargo, 'cargo')}`], ['Data', fmtData(d.data) || '⟦data⟧']] },
+    { t: 'kv', rows: [['Processo', numProc(p, a, cfg)], ['Secretaria', ph(d.secretaria, 'secretaria')], ['Unidade requisitante', ph(d.unidade, 'unidade requisitante')], ['Responsável', `${ph(d.responsavel, 'nome do responsável')} — ${ph(d.cargo, 'cargo')}`], ['Data', fmtData(d.data) || '⟦data⟧']] },
     { t: 'h', text: '1. Objeto' }, { t: 'p', text: ph(p.objeto.resumo, 'descrição resumida do objeto') },
     { t: 'h', text: '2. Justificativa da necessidade' }, { t: 'p', text: ph(d.necessidade, 'problema a resolver, sob a ótica do interesse público') },
     { t: 'h', text: '3. Consequências da não contratação' }, { t: 'p', text: ph(d.consequencias, 'o que acontece se a contratação não ocorrer') },
@@ -519,7 +525,7 @@ function docETP(p, cfg, a) {
   const parc = { itens: 'Adota-se o parcelamento por itens.', lotes: 'Adota-se o parcelamento por lotes.', global: 'Adota-se o julgamento global, sem parcelamento.' }[o.parcelamento] || '';
   const blocks = [
     { t: 'title', text: 'ESTUDO TÉCNICO PRELIMINAR', sub: 'Lei nº 14.133/2021, art. 18, §§ 1º e 2º' },
-    { t: 'kv', rows: [['Processo', ph(p.numero, 'nº do processo')], ['Objeto', ph(o.resumo, 'objeto')], ['Natureza', NAT[o.natureza].l], ['Unidade requisitante', ph(d.unidade, 'unidade')]] },
+    { t: 'kv', rows: [['Processo', numProc(p, a, cfg)], ['Objeto', ph(o.resumo, 'objeto')], ['Natureza', NAT[o.natureza].l], ['Unidade requisitante', ph(d.unidade, 'unidade')]] },
     { t: 'note', text: 'Itens marcados com * são de inclusão obrigatória (art. 18, §2º). A ausência dos demais exige justificativa.' }
   ];
   if (a.etpFacultativo && !a.simples) blocks.push({ t: 'note', text: 'Na hipótese de contratação adotada, o ETP é facultativo pelo regulamento federal (IN SEGES/ME nº 58/2022). Mantido em forma simplificada para instrução do processo.' });
@@ -548,7 +554,7 @@ function docRiscos(p, cfg, a) {
   const rows = p.riscos.map((r, i) => [String(i + 1), r.fase, ph(r.risco, 'risco'), NOME_NIVEL[r.prob] || 'Média', NOME_NIVEL[r.imp] || 'Média', nivelRisco(r), ph(r.prev, 'ação preventiva'), ph(r.cont, 'ação de contingência'), ph(r.resp, 'responsável')]);
   return { id: 'riscos', titulo: 'Mapa de Riscos', sigla: 'MR', fund: 'art. 18, X, e art. 72, I', landscape: true, blocks: [
     { t: 'title', text: 'MAPA DE RISCOS', sub: 'Lei nº 14.133/2021, art. 18, X, e art. 72, I' },
-    { t: 'kv', rows: [['Processo', ph(p.numero, 'nº do processo')], ['Objeto', ph(p.objeto.resumo, 'objeto')], ['Enquadramento', hipTexto(a)]] },
+    { t: 'kv', rows: [['Processo', numProc(p, a, cfg)], ['Objeto', ph(p.objeto.resumo, 'objeto')], ['Enquadramento', hipTexto(a)]] },
     { t: 'p', text: 'Nível de risco = probabilidade × impacto (Baixa = 1, Média = 2, Alta = 3). Resultado de 1 a 2: baixo; 3 a 4: médio; 6 a 9: alto.' },
     { t: 'table', small: true, cols: [{ h: 'Nº', w: .6 }, { h: 'Fase', w: 1.6 }, { h: 'Risco', w: 3.6 }, { h: 'Prob.', w: 1.2 }, { h: 'Impacto', w: 1.3 }, { h: 'Nível', w: 1.2 }, { h: 'Ação preventiva', w: 3.6 }, { h: 'Contingência', w: 3.2 }, { h: 'Responsável', w: 2 }], rows },
     { t: 'p', text: `${cfg.cidade}, ${dataExtenso(p.demanda.data)}.`, align: 'right' },
@@ -560,7 +566,7 @@ function docTR(p, cfg, a) {
   const o = p.objeto, e = p.execucao, d = p.demanda;
   const crit = a.escolhida && a.escolhida.grupo === 'Licitação' ? criterioPadrao(p, a.escolhida, a.est, cfg) : 'menor preço';
   const selecao = a.simples
-    ? 'A forma de seleção do fornecedor será definida pela unidade de licitações, nos termos da Lei nº 14.133/2021.'
+    ? `A forma de seleção do fornecedor será definida pela ${setorLic(cfg)}, nos termos da Lei nº 14.133/2021.`
     : a.escolhida
     ? (a.direta
       ? `Contratação direta com fundamento no ${a.escolhida.base} da Lei nº 14.133/2021 (${a.escolhida.titulo.toLowerCase()}).${['75-I', '75-II'].includes(a.escolhida.id) ? ' A contratação será precedida de aviso em sítio eletrônico oficial pelo prazo mínimo de 3 dias úteis, para obtenção de propostas adicionais, selecionando-se a proposta de menor preço (art. 75, §3º).' : ''}`
@@ -569,7 +575,7 @@ function docTR(p, cfg, a) {
   const habil = 'Exigem-se, do fornecedor selecionado: habilitação jurídica (art. 66); regularidade fiscal, social e trabalhista (art. 68), com prova de regularidade perante a Fazenda federal e a Seguridade Social, o FGTS, a Justiça do Trabalho (CNDT) e as Fazendas estadual e municipal; e declaração de cumprimento do art. 7º, XXXIII, da Constituição.' + (has(p.disputa.habTecnica) ? ` Qualificação técnica: ${p.disputa.habTecnica}` : '') + (has(p.disputa.habEconomica) ? ` Qualificação econômico-financeira: ${p.disputa.habEconomica}` : '');
   const blocks = [
     { t: 'title', text: 'TERMO DE REFERÊNCIA', sub: 'Lei nº 14.133/2021, art. 6º, XXIII, e art. 40, §1º' },
-    { t: 'kv', rows: [['Processo', ph(p.numero, 'nº do processo')], ['Unidade requisitante', ph(d.unidade, 'unidade')]] },
+    { t: 'kv', rows: [['Processo', numProc(p, a, cfg)], ['Unidade requisitante', ph(d.unidade, 'unidade')]] },
     { t: 'h', text: '1. Definição do objeto' },
     { t: 'p', text: `${ph(o.resumo, 'objeto')}, conforme especificações e quantidades abaixo. Natureza: ${NAT[o.natureza].l.toLowerCase()}${o.continuo ? ', de caráter continuado' : ''}.` },
     itensTabela(p, false),
@@ -609,7 +615,7 @@ function docPrecos(p, cfg, a) {
   const m = p.pesquisa.metodo, nomeM = { media: 'média', mediana: 'mediana', menor: 'menor valor' }[m];
   const blocks = [
     { t: 'title', text: a.simples ? 'MAPA DE ORÇAMENTOS' : 'RELATÓRIO DE PESQUISA DE PREÇOS', sub: `Lei nº 14.133/2021, art. 23${cfg.regulamento === 'federal' ? ', e IN SEGES/ME nº 65/2021' : ''}` },
-    { t: 'kv', rows: [['Processo', ph(p.numero, 'nº do processo')], ['Objeto', ph(p.objeto.resumo, 'objeto')], ['Método', `${nomeM} dos preços válidos`]] },
+    { t: 'kv', rows: [['Processo', numProc(p, a, cfg)], ['Objeto', ph(p.objeto.resumo, 'objeto')], ['Método', `${nomeM} dos preços válidos`]] },
     { t: 'p', text: `A pesquisa observou os parâmetros do art. 23, §1º, da Lei nº 14.133/2021. Os preços foram analisados criticamente; os valores desconsiderados estão identificados com a respectiva justificativa. O preço de referência de cada item corresponde à ${nomeM} dos preços válidos.` }
   ];
   p.itens.forEach((it, i) => {
@@ -626,7 +632,7 @@ function docPrecos(p, cfg, a) {
   });
   blocks.push({ t: 'h', text: 'Resumo' }, itensTabela(p, true));
   if (has(p.pesquisa.just)) blocks.push({ t: 'p', text: p.pesquisa.just });
-  if (a.simples) blocks.push({ t: 'note', text: 'Orçamentos obtidos junto a fornecedores (art. 23, §1º, IV). A unidade de licitações poderá complementar a pesquisa com os demais parâmetros do art. 23, como o Painel de Preços do PNCP e contratações similares de outros órgãos.' });
+  if (a.simples) blocks.push({ t: 'note', text: `Orçamentos obtidos junto a fornecedores (art. 23, §1º, IV). A ${setorLic(cfg)} poderá complementar a pesquisa com os demais parâmetros do art. 23, como o Painel de Preços do PNCP e contratações similares de outros órgãos.` });
   blocks.push({ t: 'p', text: `${cfg.cidade}, ${dataExtenso(p.demanda.data)}.`, align: 'right' },
     a.simples ? { t: 'sig', nome: ph(p.demanda.responsavel, 'nome do responsável'), cargo: `${ph(p.demanda.cargo, 'cargo')} — ${ph(p.demanda.unidade, 'unidade')}` } : { t: 'sig', nome: ph(cfg.agente.nome, 'nome do agente de contratação'), cargo: cfg.agente.cargo });
   return { id: 'precos', titulo: a.simples ? 'Mapa de Orçamentos' : 'Relatório de Pesquisa de Preços', sigla: a.simples ? 'MO' : 'PP', fund: 'art. 23', blocks };
@@ -635,7 +641,7 @@ function docPrecos(p, cfg, a) {
 function docOrcamento(p, cfg, a) {
   return { id: 'orcamento', titulo: 'Reserva e Disponibilidade Orçamentária', sigla: 'DO', fund: 'art. 72, IV, e art. 150', blocks: [
     { t: 'title', text: 'SOLICITAÇÃO DE RESERVA E DECLARAÇÃO DE DISPONIBILIDADE ORÇAMENTÁRIA', sub: 'Lei nº 14.133/2021, arts. 72, IV, e 150' },
-    { t: 'p', text: `À Contabilidade. Solicito a reserva orçamentária para ${ph(p.objeto.resumo, 'objeto')}, no valor estimado de **${fmtBRL(a.est)}**, referente ao Processo Administrativo nº ${ph(p.numero, 'nº do processo')}.` },
+    { t: 'p', text: `À Contabilidade. Solicito a reserva orçamentária para ${ph(p.objeto.resumo, 'objeto')}, no valor estimado de **${fmtBRL(a.est)}**, referente ao Processo Administrativo nº ${numProc(p, a, cfg)}.` },
     { t: 'sig', nome: ph(p.demanda.responsavel, 'nome do responsável'), cargo: ph(p.demanda.unidade, 'unidade') },
     { t: 'h', text: 'Declaração' },
     { t: 'p', text: `Declaro que existe dotação orçamentária suficiente para a despesa acima, compatível com a Lei Orçamentária Anual, a Lei de Diretrizes Orçamentárias e o Plano Plurianual, e que foi efetuada a reserva no valor de ${fmtBRL(a.est)}, na seguinte classificação:` },
@@ -658,7 +664,7 @@ function docJustDireta(p, cfg, a) {
   const docs = DOCS_HAB.map(dd => [dd.l, (f.docs || {})[dd.k] ? 'Juntado' : '⟦pendente⟧']);
   return { id: 'justificativa', titulo: 'Justificativa da Contratação Direta', sigla: 'JCD', fund: 'art. 72', blocks: [
     { t: 'title', text: `JUSTIFICATIVA DE ${h.grupo === 'Inexigibilidade' ? 'INEXIGIBILIDADE' : 'DISPENSA'} DE LICITAÇÃO`, sub: `Lei nº 14.133/2021, ${h.base}, e art. 72` },
-    { t: 'kv', rows: [['Processo', ph(p.numero, 'nº do processo')], ['Objeto', ph(p.objeto.resumo, 'objeto')], ['Fundamento', `${h.base} da Lei nº 14.133/2021`], ['Valor', fmtBRL(a.est)]] },
+    { t: 'kv', rows: [['Processo', numProc(p, a, cfg)], ['Objeto', ph(p.objeto.resumo, 'objeto')], ['Fundamento', `${h.base} da Lei nº 14.133/2021`], ['Valor', fmtBRL(a.est)]] },
     { t: 'h', text: '1. Enquadramento' }, ...carac.map(c => ({ t: 'p', text: c })),
     ...(has(p.enquadramento.justDivergencia) ? [{ t: 'p', text: p.enquadramento.justDivergencia }] : []),
     { t: 'h', text: '2. Razão da escolha do contratado (art. 72, VI)' },
@@ -690,7 +696,7 @@ function docAviso(p, cfg, a) {
   return { id: 'aviso', titulo: 'Aviso de Contratação Direta', sigla: 'AV', fund: 'art. 75, §3º', blocks: [
     { t: 'title', text: 'AVISO DE CONTRATAÇÃO DIRETA', sub: `Dispensa de licitação — ${a.escolhida.base} e §3º da Lei nº 14.133/2021` },
     { t: 'p', text: `O ${cfg.ente} torna pública a intenção de contratar, por dispensa de licitação em razão do valor, o objeto abaixo, e convida eventuais interessados a apresentar propostas adicionais.` },
-    { t: 'kv', rows: [['Processo', ph(p.numero, 'nº do processo')], ['Objeto', ph(p.objeto.resumo, 'objeto')], ['Critério', 'Menor preço ' + ({ itens: 'por item', lotes: 'por lote', global: 'global' })[p.objeto.parcelamento]], ['Prazo para propostas', 'Mínimo de 3 (três) dias úteis a contar da publicação: até ⟦data e hora⟧'], ['Envio das propostas', ph(cfg.plataforma, 'plataforma eletrônica ou endereço eletrônico')]] },
+    { t: 'kv', rows: [['Processo', numProc(p, a, cfg)], ['Objeto', ph(p.objeto.resumo, 'objeto')], ['Critério', 'Menor preço ' + ({ itens: 'por item', lotes: 'por lote', global: 'global' })[p.objeto.parcelamento]], ['Prazo para propostas', 'Mínimo de 3 (três) dias úteis a contar da publicação: até ⟦data e hora⟧'], ['Envio das propostas', ph(cfg.plataforma, 'plataforma eletrônica ou endereço eletrônico')]] },
     itensTabela(p, false),
     { t: 'p', text: 'A proposta deverá conter a descrição do objeto, o preço unitário e total, o prazo de validade e os dados do proponente. O vencedor deverá apresentar os documentos de habilitação indicados no termo de referência.' },
     { t: 'p', text: `O termo de referência está disponível em ${ph(cfg.site, 'sítio eletrônico oficial')}.` },
@@ -703,14 +709,14 @@ function docAutorizacao(p, cfg, a) {
   const f = p.fornecedor, h = a.escolhida;
   if (!a.direta) return { id: 'autorizacao', titulo: 'Autorização de Abertura', sigla: 'AUT', fund: 'art. 18 e art. 53', blocks: [
     { t: 'title', text: 'AUTORIZAÇÃO PARA ABERTURA DE LICITAÇÃO', sub: 'Lei nº 14.133/2021' },
-    { t: 'p', text: `Considerando a demanda formalizada, o estudo técnico preliminar, o termo de referência, a pesquisa de preços, a reserva orçamentária e o parecer jurídico constantes do Processo Administrativo nº ${ph(p.numero, 'nº do processo')}, **AUTORIZO** a abertura de licitação na modalidade ${h ? h.titulo.toLowerCase() : '⟦modalidade⟧'}, critério de julgamento ${criterioPadrao(p, h, a.est, cfg)}, para ${ph(p.objeto.resumo, 'objeto')}, com valor estimado de ${fmtBRL(a.est)}.` },
+    { t: 'p', text: `Considerando a demanda formalizada, o estudo técnico preliminar, o termo de referência, a pesquisa de preços, a reserva orçamentária e o parecer jurídico constantes do Processo Administrativo nº ${numProc(p, a, cfg)}, **AUTORIZO** a abertura de licitação na modalidade ${h ? h.titulo.toLowerCase() : '⟦modalidade⟧'}, critério de julgamento ${criterioPadrao(p, h, a.est, cfg)}, para ${ph(p.objeto.resumo, 'objeto')}, com valor estimado de ${fmtBRL(a.est)}.` },
     { t: 'p', text: `Designo como ${h && h.id === 'PREGAO' ? 'pregoeiro(a)' : 'agente de contratação'} ${ph(h && h.id === 'PREGAO' ? cfg.pregoeiro.nome : cfg.agente.nome, 'nome')}, nos termos do art. 8º.` },
     { t: 'p', text: `${cfg.cidade}, ____ de ______________ de ${cfg.valores.ano}.`, align: 'right' },
     { t: 'sig', nome: ph(cfg.autoridade.nome, 'nome da autoridade competente'), cargo: cfg.autoridade.cargo }
   ] };
   return { id: 'autorizacao', titulo: 'Autorização e Extrato', sigla: 'AUT', fund: 'art. 72, VIII, e parágrafo único', blocks: [
     { t: 'title', text: 'TERMO DE AUTORIZAÇÃO DE CONTRATAÇÃO DIRETA', sub: 'Lei nº 14.133/2021, art. 72, VIII' },
-    { t: 'p', text: `Considerando a instrução do Processo Administrativo nº ${ph(p.numero, 'nº do processo')}, a justificativa de ${h.grupo.toLowerCase()} e o parecer jurídico, **AUTORIZO** a contratação direta de ${ph(f.razao, 'razão social')}, CNPJ ${ph(f.cnpj, 'CNPJ')}, para ${ph(p.objeto.resumo, 'objeto')}, no valor de ${fmtBRL(a.est)}, com fundamento no ${h.base} da Lei nº 14.133/2021.` },
+    { t: 'p', text: `Considerando a instrução do Processo Administrativo nº ${numProc(p, a, cfg)}, a justificativa de ${h.grupo.toLowerCase()} e o parecer jurídico, **AUTORIZO** a contratação direta de ${ph(f.razao, 'razão social')}, CNPJ ${ph(f.cnpj, 'CNPJ')}, para ${ph(p.objeto.resumo, 'objeto')}, no valor de ${fmtBRL(a.est)}, com fundamento no ${h.base} da Lei nº 14.133/2021.` },
     { t: 'p', text: 'Determino a divulgação deste ato em sítio eletrônico oficial (art. 72, parágrafo único) e no Portal Nacional de Contratações Públicas (art. 94), como condição de eficácia.' },
     { t: 'p', text: `${cfg.cidade}, ____ de ______________ de ${cfg.valores.ano}.`, align: 'right' },
     { t: 'sig', nome: ph(cfg.autoridade.nome, 'nome da autoridade competente'), cargo: cfg.autoridade.cargo },
@@ -722,7 +728,7 @@ function docAutorizacao(p, cfg, a) {
 function docJuridico(p, cfg, a, pecas) {
   return { id: 'juridico', titulo: 'Encaminhamento à Assessoria Jurídica', sigla: 'EJ', fund: 'art. 53', blocks: [
     { t: 'title', text: 'ENCAMINHAMENTO PARA ANÁLISE JURÍDICA', sub: 'Lei nº 14.133/2021, art. 53' },
-    { t: 'p', text: `À ${cfg.juridico.cargo}. Encaminho o Processo Administrativo nº ${ph(p.numero, 'nº do processo')}, referente a ${ph(p.objeto.resumo, 'objeto')}, para controle prévio de legalidade, nos termos do art. 53 da Lei nº 14.133/2021. Enquadramento proposto: ${hipTexto(a)}.` },
+    { t: 'p', text: `À ${cfg.juridico.cargo}. Encaminho o Processo Administrativo nº ${numProc(p, a, cfg)}, referente a ${ph(p.objeto.resumo, 'objeto')}, para controle prévio de legalidade, nos termos do art. 53 da Lei nº 14.133/2021. Enquadramento proposto: ${hipTexto(a)}.` },
     { t: 'p', text: 'Peças juntadas:' },
     ...pecas.filter(x => x.id !== 'juridico' && x.id !== 'autorizacao').map(x => ({ t: 'li', text: `${x.titulo} (${x.fund})` })),
     { t: 'p', text: 'Solicita-se manifestação sobre a regularidade da instrução, o enquadramento legal e as minutas.' },
@@ -735,7 +741,7 @@ function docDesignacao(p, cfg, a) {
   const e = p.execucao;
   return { id: 'designacao', titulo: a.simples ? 'Termo de Responsabilidade (gestor e fiscal)' : 'Designação de Gestor e Fiscal', sigla: a.simples ? 'TRS' : 'DGF', fund: 'arts. 7º e 117', blocks: [
     { t: 'title', text: 'TERMO DE DESIGNAÇÃO E RESPONSABILIDADE DE GESTOR E FISCAL', sub: 'Lei nº 14.133/2021, arts. 7º e 117' },
-    { t: 'p', text: `${a.simples ? `O(A) ${ph(p.demanda.secretaria, 'secretaria')} indica` : 'A autoridade competente designa'}, para a contratação objeto do Processo Administrativo nº ${ph(p.numero, 'nº do processo')} (${ph(p.objeto.resumo, 'objeto')}):` },
+    { t: 'p', text: `${a.simples ? `O(A) ${ph(p.demanda.secretaria, 'secretaria')} indica` : 'A autoridade competente designa'}, para a contratação objeto do Processo Administrativo nº ${numProc(p, a, cfg)} (${ph(p.objeto.resumo, 'objeto')}):` },
     { t: 'kv', rows: [['Gestor', `${ph(e.gestor, 'nome do gestor')} — ${ph(e.gestorCargo, 'cargo')}`], ['Fiscal', `${ph(e.fiscal, 'nome do fiscal')} — ${ph(e.fiscalCargo, 'cargo')}`]] },
     { t: 'p', text: 'Compete ao fiscal acompanhar a execução, anotar em registro próprio as ocorrências, determinar a regularização de falhas e informar ao gestor, em tempo hábil, o que exceder sua competência (art. 117, §§ 1º e 2º). Compete ao gestor coordenar a gestão do contrato, acompanhar prazos, instruir aditivos e propor a aplicação de sanções.' },
     { t: 'p', text: 'Os designados declaram ter ciência das atribuições, que não mantêm vínculo de parentesco, técnico, comercial, econômico, financeiro, trabalhista ou civil com o contratado ou seus dirigentes (art. 7º, III, e art. 9º, §1º), e que comunicarão de imediato qualquer impedimento superveniente.' },
@@ -756,7 +762,7 @@ function docEdital(p, cfg, a) {
     : ex.tipo === 'global' ? 'A licitação destina-se à participação exclusiva de microempresas e empresas de pequeno porte (LC nº 123/2006, art. 48, I).'
     : `Os ${unid} ${ex.lista.join(', ')} destinam-se à participação exclusiva de microempresas e empresas de pequeno porte (LC nº 123/2006, art. 48, I).`;
   const B = [
-    { t: 'title', text: `EDITAL DE ${mod} ELETRÔNICO Nº ⟦nº/ano⟧`, sub: `Processo Administrativo nº ${ph(p.numero, 'nº do processo')}${srp ? ' — Registro de Preços' : ''}` },
+    { t: 'title', text: `EDITAL DE ${mod} ELETRÔNICO Nº ⟦nº/ano⟧`, sub: `Processo Administrativo nº ${numProc(p, a, cfg)}${srp ? ' — Registro de Preços' : ''}` },
     { t: 'note', text: 'MINUTA gerada a partir dos dados do processo. Sujeita à revisão da assessoria jurídica (art. 53).' },
     { t: 'p', text: `O ${cfg.ente}, por intermédio do(a) ${ph(p.demanda.secretaria, 'secretaria')}, torna público que realizará licitação na modalidade **${h.titulo.toLowerCase()}**, forma eletrônica, critério de julgamento **${crit}**, ${({ itens: 'por item', lotes: 'por lote', global: 'global' })[p.objeto.parcelamento]}, modo de disputa ${d.modo === 'aberto_fechado' ? 'aberto e fechado' : d.modo === 'fechado_aberto' ? 'fechado e aberto' : 'aberto'}${srp ? ', para registro de preços' : ''}, regida pela Lei nº 14.133/2021, pela Lei Complementar nº 123/2006, pelos ${regTexto(cfg)} e pelas condições deste edital.` },
     { t: 'kv', rows: [['Sessão pública', `${fmtData(d.dataSessao) || '⟦data⟧'} às ⟦hora⟧ (horário de Brasília)`], ['Plataforma', ph(cfg.plataforma, 'plataforma eletrônica')], ['Valor estimado', fmtBRL(a.est)], ['Prazo mínimo de publicação', a.prazoEdital || '⟦prazo⟧']] },
@@ -813,7 +819,7 @@ function docContrato(p, cfg, a) {
     ? `O contrato vigerá por ${ph(e.vigenciaTexto || (o.vigenciaMeses ? o.vigenciaMeses + ' meses' : ''), 'vigência')} a partir da assinatura, prorrogável até 10 anos nos termos dos arts. 106 e 107.`
     : `O contrato vigerá por ${ph(e.vigenciaTexto, 'prazo de vigência')} a partir da assinatura. Prazo de execução: ${ph(e.prazo, 'prazo de execução')}.`;
   return { id: 'contrato', titulo: 'Minuta de Contrato', sigla: 'CT', fund: 'art. 92', blocks: [
-    { t: 'title', text: 'MINUTA DE CONTRATO Nº ⟦nº/ano⟧', sub: `Processo Administrativo nº ${ph(p.numero, 'nº do processo')}` },
+    { t: 'title', text: 'MINUTA DE CONTRATO Nº ⟦nº/ano⟧', sub: `Processo Administrativo nº ${numProc(p, a, cfg)}` },
     { t: 'note', text: 'MINUTA sujeita à revisão da assessoria jurídica (art. 53).' },
     { t: 'p', text: `O **${cfg.ente.toUpperCase()}**, CNPJ ${ph(cfg.cnpj, 'CNPJ do Município')}, com sede em ${ph(cfg.endereco, 'endereço')}, neste ato representado por ${ph(cfg.autoridade.nome, 'autoridade')}, ${cfg.autoridade.cargo}, doravante CONTRATANTE, e **${ph(f.razao, 'razão social do contratado')}**, CNPJ ${ph(f.cnpj, 'CNPJ')}, com sede em ${ph(f.endereco, 'endereço do contratado')}, representada por ${ph(f.representante, 'representante legal')}, doravante CONTRATADA, ajustam o presente contrato, decorrente de ${a.direta ? (a.escolhida.grupo.toLowerCase() + ' de licitação, ' + a.escolhida.base) : ('licitação na modalidade ' + a.escolhida.titulo.toLowerCase())} da Lei nº 14.133/2021, mediante as cláusulas seguintes.` },
     ...cl('PRIMEIRA', 'DO OBJETO', [`${ph(o.resumo, 'objeto')}, conforme termo de referência e proposta da CONTRATADA, que integram este contrato independentemente de transcrição (art. 92, II).`,
@@ -845,7 +851,7 @@ function docContrato(p, cfg, a) {
 function docAta(p, cfg, a) {
   const f = p.fornecedor;
   return { id: 'ata', titulo: 'Minuta de Ata de Registro de Preços', sigla: 'ARP', fund: 'arts. 82 a 86', blocks: [
-    { t: 'title', text: 'MINUTA DE ATA DE REGISTRO DE PREÇOS Nº ⟦nº/ano⟧', sub: `Processo Administrativo nº ${ph(p.numero, 'nº do processo')}` },
+    { t: 'title', text: 'MINUTA DE ATA DE REGISTRO DE PREÇOS Nº ⟦nº/ano⟧', sub: `Processo Administrativo nº ${numProc(p, a, cfg)}` },
     { t: 'note', text: 'MINUTA sujeita à revisão da assessoria jurídica (art. 53).' },
     { t: 'p', text: `O ${cfg.ente}, CNPJ ${ph(cfg.cnpj, 'CNPJ do Município')}, órgão gerenciador, registra os preços de ${ph(f.razao || '', 'fornecedor registrado')}, CNPJ ${ph(f.cnpj, 'CNPJ')}, para ${ph(p.objeto.resumo, 'objeto')}, conforme as condições abaixo e o edital ⟦nº⟧.` },
     { t: 'h', text: '1. Preços registrados' },
@@ -894,7 +900,7 @@ function docPedido(p, cfg, a) {
     if (i) blocks.push({ t: 'pb' });
     blocks.push(
       { t: 'title', text: 'SOLICITAÇÃO DE ORÇAMENTO', sub: 'Pesquisa de preços — Lei nº 14.133/2021, art. 23, §1º, IV' },
-      { t: 'kv', rows: [['À empresa', ph(f.nome, 'nome da empresa')], ['Contato', ph(f.contato, 'e-mail ou telefone')], ['Processo', has(p.numero) ? p.numero : 'a ser numerado pela unidade de licitações']] },
+      { t: 'kv', rows: [['À empresa', ph(f.nome, 'nome da empresa')], ['Contato', ph(f.contato, 'e-mail ou telefone')], ['Processo', numProc(p, a, cfg)]] },
       { t: 'p', text: `O(A) ${ph(p.demanda.secretaria, 'secretaria')} da ${cfg.nome} solicita orçamento para ${ph(p.objeto.resumo, 'objeto')}, conforme a relação abaixo. O pedido destina-se à estimativa de preços e não gera compromisso de contratação.` },
       itensTabela(p, true, true),
       ...(p.objeto.parcelamento === 'lotes' ? [{ t: 'p', text: 'Os itens estão agrupados em lotes. Pode ser cotado um ou mais lotes, desde que o orçamento inclua todos os itens de cada lote cotado.' }] : []),
@@ -909,8 +915,9 @@ function docPedido(p, cfg, a) {
 }
 
 /* ---------- Lista de peças por cenário ---------- */
-function montarPecas(p, cfg, opts = {}) {
-  syncOrcs(p);
+function montarPecas(p0, cfg, opts = {}) {
+  syncOrcs(p0);
+  const p = REV.procCorrigido ? REV.procCorrigido(p0) : p0;
   const a = analisar(p, cfg);
   if (opts.simples) {
     a.simples = true;
@@ -1026,12 +1033,12 @@ function paraDocx(D, pecas, p, cfg, opts = {}) {
     ];
     const ch = [];
     if (/^data:image\/(png|jpe?g)/.test(brasao)) {
-      const hpx = 86, wpx = Math.round(hpx * prop), wImg = 1500;
-      const cel = (w, children, al) => new TableCell({ width: { size: w, type: WidthType.DXA }, borders: bordasNenhuma, verticalAlign: al, margins: { top: 0, bottom: 0, left: 0, right: 0 }, children });
-      ch.push(new Table({ width: { size: larg, type: WidthType.DXA }, columnWidths: [wImg, larg - wImg - wImg, wImg], borders: bordasNenhuma, rows: [new TableRow({ children: [
-        cel(wImg, [new Paragraph({ children: [new ImageRun({ type: tipoImg(brasao), data: b64ToBytes(brasao), transformation: { width: wpx, height: hpx } })] })], VerticalAlign.CENTER),
-        cel(larg - wImg - wImg, textos, VerticalAlign.CENTER),
-        cel(wImg, [new Paragraph({ children: [] })], VerticalAlign.CENTER)
+      // brasão e texto formam um bloco centralizado na página
+      const hpx = 90, wpx = Math.round(hpx * prop), wImg = 1450, wTxt = Math.min(6900, larg - wImg);
+      const cel = (w, children) => new TableCell({ width: { size: w, type: WidthType.DXA }, borders: bordasNenhuma, verticalAlign: VerticalAlign.CENTER, margins: { top: 0, bottom: 0, left: 0, right: 0 }, children });
+      ch.push(new Table({ alignment: AlignmentType.CENTER, width: { size: wImg + wTxt, type: WidthType.DXA }, columnWidths: [wImg, wTxt], borders: bordasNenhuma, rows: [new TableRow({ children: [
+        cel(wImg, [new Paragraph({ alignment: AlignmentType.CENTER, children: [new ImageRun({ type: tipoImg(brasao), data: b64ToBytes(brasao), transformation: { width: wpx, height: hpx } })] })]),
+        cel(wTxt, textos)
       ] })] }));
     } else ch.push(...textos);
     if (marca) {
@@ -1055,4 +1062,4 @@ function paraDocx(D, pecas, p, cfg, opts = {}) {
   return new Document({ creator: 'Licita IAC', title: pecas.length === 1 ? pecas[0].titulo : 'Processo ' + (p.numero || ''), styles: { default: { document: { run: { font: FONT, size: 22 } } } }, sections });
 }
 
-if (typeof module !== 'undefined') module.exports = { grupoLotes, textoJulgamento, exclusivosME, cfgPadrao, normalizarCfg, linhasCabecalho, brasaoURI, procExemplo, procVazio, normalizarProc, syncOrcs, setValorOrc, valorOrc, analisar, montarPecas, paraDocx, estat, estimativa, NAT, precoUnit, totalItem };
+if (typeof module !== 'undefined') module.exports = { numProc, setorLic, grupoLotes, textoJulgamento, exclusivosME, cfgPadrao, normalizarCfg, linhasCabecalho, brasaoURI, procExemplo, procVazio, normalizarProc, syncOrcs, setValorOrc, valorOrc, analisar, montarPecas, paraDocx, estat, estimativa, NAT, precoUnit, totalItem };

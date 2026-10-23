@@ -40,7 +40,8 @@ const SVIEWS = {
       ${campo('Secretaria', 'proc.demanda.secretaria', { req: true })}
       ${campo('Departamento ou setor', 'proc.demanda.unidade', { req: true })}
       <div class="grid2">${campo('Seu nome completo', 'proc.demanda.responsavel', { req: true })}${campo('Seu cargo', 'proc.demanda.cargo', { req: true })}</div>
-      <div class="grid2">${campo('Data do pedido', 'proc.demanda.data', { type: 'date' })}${campo('Número do processo', 'proc.numero', { hint: 'Se ainda não tiver, deixe em branco. A Licitação preenche.' })}</div>
+      <div class="grid2">${campo('Data do pedido', 'proc.demanda.data', { type: 'date' })}<div class="field"><span class="lbl-prev">Número do processo</span><p class="info-num">${has(R.proc.numero) ? esc(R.proc.numero) : `Atribuído pela ${esc(setorLic(R.cfg))}`}</p></div></div>
+      ${ajuda(`Você não precisa numerar o processo. A ${esc(setorLic(R.cfg))} atribui o número quando receber o seu pedido; até lá, os documentos saem com "a ser atribuído pela ${esc(setorLic(R.cfg))}".`, '')}
     </section>`;
   },
 
@@ -49,18 +50,18 @@ const SVIEWS = {
     const tipos = TIPOS_SIMPLES.map(([k, l, ex]) => `<label class="opcao${nat === k ? ' sel' : ''}"><input type="radio" name="tipo" data-act="s-tipo" value="${k}"${nat === k ? ' checked' : ''}><span><b>${l}</b><small>${ex}</small></span></label>`).join('');
     const itens = p.itens.map((it, i) => `<div class="s-item">
       <div class="item-h"><span class="idx">Item ${i + 1}</span>${p.objeto.parcelamento === 'lotes' ? `<label class="lote-in">Lote <input type="number" min="1" data-path="proc.itens.${i}.lote" data-type="num" data-rr="1" value="${esc(it.lote)}" aria-label="Lote do item ${i + 1}"></label>` : ''}${p.itens.length > 1 ? `<button class="btn ghost small" data-act="del-item" data-i="${i}" style="margin-left:auto">Remover</button>` : ''}</div>
-      ${campo('Como deve ser o produto ou serviço', `proc.itens.${i}.desc`, { type: 'textarea', rows: 2, req: true })}
+      ${campo('Como deve ser o produto ou serviço', `proc.itens.${i}.desc`, { type: 'textarea', rows: 2, req: true, rev: 'item' })}
       <div class="grid2"><div class="field"><label for="f_un_${i}">Unidade</label><input id="f_un_${i}" list="unidades" data-path="proc.itens.${i}.unid" value="${esc(it.unid)}"></div>
       ${campo('Quantidade', `proc.itens.${i}.qtd`, { type: 'number', req: true })}</div></div>`).join('');
     const parc = p.objeto.parcelamento;
     return `<section class="s-card"><h2>Que tipo de contratação é?</h2><div class="opcoes">${tipos}</div></section>
-      <section class="s-card">${campo('Resuma em uma frase o que será comprado ou contratado', 'proc.objeto.resumo', { req: true })}
+      <section class="s-card">${campo('Resuma em uma frase o que será comprado ou contratado', 'proc.objeto.resumo', { req: true, rev: 'resumo' })}
         ${ajuda('Comece com "Aquisição de…" para compras ou "Contratação de…" para serviços.', 'Aquisição de material de limpeza para as escolas municipais.')}</section>
       <section class="s-card"><h2>Itens</h2>
         ${ajuda('Descreva cada item pelas características que importam: tamanho, material, capacidade. Não cite marca: isso restringe a concorrência e o Tribunal de Contas aponta.', 'Detergente líquido neutro, biodegradável, frasco de 500 ml.')}
         ${itens}<datalist id="unidades">${UNIDADES.map(u => `<option value="${u}">`).join('')}</datalist>
         <div class="btns"><button class="btn" data-act="add-item">+ Adicionar outro item</button></div></section>
-      <section class="s-card">${campo('Exigências de qualidade (opcional)', 'proc.objeto.requisitos', { type: 'textarea' })}
+      <section class="s-card">${campo('Exigências de qualidade (opcional)', 'proc.objeto.requisitos', { type: 'textarea', rev: 'texto' })}
         ${ajuda('Normas técnicas, certificados, registros ou licenças que o fornecedor ou o produto precisam ter.', 'Produto com registro na ANVISA; mudas de viveiro inscrito no RENASEM.')}</section>
       ${p.itens.length > 1 ? `<section class="s-card"><h2>Como os itens serão disputados?</h2>
         <div class="opcoes tres">
@@ -69,29 +70,29 @@ const SVIEWS = {
           <label class="opcao${parc === 'global' ? ' sel' : ''}"><input type="radio" name="parc" data-act="s-parc" value="global"${parc === 'global' ? ' checked' : ''}><span><b>Tudo junto</b><small>Uma empresa só fornece todos os itens</small></span></label></div>
         ${EXPLICA_LOTES}
         ${parc === 'lotes' ? `<p class="hint"><b>${esc(composicaoLotes(p))}</b> Ajuste o número do lote em cada item, na lista acima.</p>` : ''}
-        ${parc !== 'itens' ? campo(parc === 'lotes' ? 'Explique por que agrupar em lotes' : 'Explique por que precisa ser uma empresa só', 'proc.objeto.justParcelamento', { type: 'textarea', req: true, hint: parc === 'lotes' ? 'Ex.: os itens de cada lote são entregues juntos pelo mesmo tipo de fornecedor, e separá-los encareceria o frete.' : 'Razão técnica ou econômica (art. 40, §3º). "Facilita a gestão" sozinho não basta.' }) : ''}</section>` : ''}`;
+        ${parc !== 'itens' ? campo(parc === 'lotes' ? 'Explique por que agrupar em lotes' : 'Explique por que precisa ser uma empresa só', 'proc.objeto.justParcelamento', { type: 'textarea', req: true, rev: 'justificativa', hint: parc === 'lotes' ? 'Ex.: os itens de cada lote são entregues juntos pelo mesmo tipo de fornecedor, e separá-los encareceria o frete.' : 'Razão técnica ou econômica (art. 40, §3º). "Facilita a gestão" sozinho não basta.' }) : ''}</section>` : ''}`;
   },
 
   s_porque() {
-    return `<section class="s-card">${campo('Qual problema existe hoje?', 'proc.demanda.necessidade', { type: 'textarea', rows: 6, req: true })}
+    return `<section class="s-card">${campo('Qual problema existe hoje?', 'proc.demanda.necessidade', { type: 'textarea', rows: 6, req: true, rev: 'necessidade' })}
       ${ajuda('Responda: o que falta ou não funciona? Quem é afetado? Desde quando? Use números sempre que puder. Evite frases genéricas como "para atender às necessidades da Secretaria".', 'As 6 escolas municipais, com 1.250 alunos, estão sem estoque de material de limpeza desde agosto. A Vigilância Sanitária exige higienização diária das cozinhas e banheiros.')}</section>
-      <section class="s-card">${campo('O que acontece se não comprar ou não contratar?', 'proc.demanda.consequencias', { type: 'textarea', rows: 3 })}
+      <section class="s-card">${campo('O que acontece se não comprar ou não contratar?', 'proc.demanda.consequencias', { type: 'textarea', rows: 3, rev: 'consequencias' })}
       ${ajuda('', 'Sem o material, a limpeza diária fica comprometida e as escolas podem ser autuadas pela Vigilância Sanitária.')}</section>`;
   },
 
   s_quanto() {
-    return `<section class="s-card">${campo('Como chegou nas quantidades?', 'proc.objeto.memoriaQtd', { type: 'textarea', rows: 4, req: true })}
+    return `<section class="s-card">${campo('Como chegou nas quantidades?', 'proc.objeto.memoriaQtd', { type: 'textarea', rows: 4, req: true, rev: 'memoria' })}
       ${ajuda('Mostre a conta. Pode ser o consumo do ano anterior, o número de locais atendidos, a área a ser coberta.', '6 escolas × 20 frascos por mês × 12 meses = 1.440 frascos de detergente.')}</section>
-      <section class="s-card">${campo('Existe outra forma de resolver o problema? (opcional)', 'proc.objeto.alternativas', { type: 'textarea' })}
+      <section class="s-card">${campo('Existe outra forma de resolver o problema? (opcional)', 'proc.objeto.alternativas', { type: 'textarea', rev: 'texto' })}
       ${ajuda('Se pensou em alugar em vez de comprar, produzir na própria prefeitura ou receber por doação, conte por que não serve.', '')}</section>
-      <section class="s-card">${campo('Conclusão', 'proc.objeto.conclusao', { type: 'textarea', req: true })}
+      <section class="s-card">${campo('Conclusão', 'proc.objeto.conclusao', { type: 'textarea', req: true, rev: 'conclusao' })}
       <div class="btns">${sugerir('proc.objeto.conclusao', 'conclusao')}</div></section>`;
   },
 
   s_entrega() {
     const p = R.proc;
     return `<section class="s-card"><div class="grid2">${campo('Local de entrega ou execução', 'proc.execucao.local', { req: true, ph: 'Almoxarifado central, Rua…' })}${campo('Prazo', 'proc.execucao.prazo', { req: true, ph: '10 dias após o pedido' })}</div>
-      ${campo('Como será feito o recebimento', 'proc.execucao.recebimento', { type: 'textarea' })}
+      ${campo('Como será feito o recebimento', 'proc.execucao.recebimento', { type: 'textarea', rev: 'texto' })}
       <div class="btns">${sugerir('proc.execucao.recebimento', 'recebimento')}</div>
       ${campo('Garantia exigida (opcional)', 'proc.execucao.garantia', { type: 'textarea', rows: 2, ph: 'Garantia de 12 meses contra defeitos de fabricação' })}</section>
       <section class="s-card">${campo('É um serviço ou fornecimento que se repete todo mês?', 'proc.objeto.continuo', { type: 'check', rr: 1, hint: 'Ex.: limpeza, coleta, locação mensal. Compras com entrega única não são contínuas.' })}
@@ -156,14 +157,16 @@ const SVIEWS = {
       [has(p.objeto.conclusao), 'Conclusão do estudo', 's_quanto'],
       [has(p.execucao.local) && has(p.execucao.prazo), 'Local e prazo de entrega', 's_entrega'],
       [orcsOk >= 3, `Pelo menos 3 orçamentos com preço em todos os itens (você tem ${orcsOk})`, 's_orcs'],
-      [has(p.execucao.gestor) && has(p.execucao.fiscal), 'Gestor e fiscal indicados', 's_fiscal']
+      [has(p.execucao.gestor) && has(p.execucao.fiscal), 'Gestor e fiscal indicados', 's_fiscal'],
+      ...(() => { const g = avisosRedacao(p); return [[!g.length, g.length ? `Redação genérica em ${g.length} campo(s): veja as recomendações abaixo de cada um` : 'Textos sem redação genérica', g.length ? g[0].etapa : 's_porque']]; })()
     ];
     const faltam = checks.filter(c => !c[0]).length;
     const docs = pecas.map((d, i) => `<div class="doc-row"><span class="sg">${d.sigla}</span><div class="tt"><b>${esc(d.titulo)}</b><span>${d.pendencias ? d.pendencias + ' campo(s) em amarelo para completar' : 'pronto'}</span></div>
       <div class="btns"><button class="btn small" data-act="ver" data-i="${i}">Ver</button><button class="btn small pri" data-act="baixar" data-i="${i}">Baixar</button></div></div>`).join('');
     return `<section class="s-card"><h2>${faltam ? `Faltam ${faltam} ${faltam > 1 ? 'pontos' : 'ponto'}` : 'Tudo preenchido'}</h2>
       <ul class="checks">${checks.map(([ok, t, passo]) => `<li class="${ok ? 'ok' : 'falta'}"><span class="ic" aria-hidden="true">${ok ? '✓' : '!'}</span><span>${t}</span>${ok ? '' : `<button class="btn small" data-spasso="${passo}">Corrigir</button>`}</li>`).join('')}</ul>
-      ${faltam ? '<p class="hint">Você pode baixar os documentos mesmo assim. O que faltar sai destacado em amarelo.</p>' : ''}</section>
+      ${faltam ? '<p class="hint">Você pode baixar os documentos mesmo assim. O que faltar sai destacado em amarelo.</p>' : ''}
+      <p class="hint">Erros de digitação e acentuação conhecidos são corrigidos automaticamente nos documentos. O que é genérico, só você pode completar.</p></section>
       <section class="s-card"><h2>Documentos</h2>${docs}
       <div class="btns" style="padding-top:10px"><button class="btn big pri" data-act="baixar-tudo">Baixar todos em um arquivo (.docx)</button></div></section>
       <section class="s-card"><h2>Enviar para a Licitação</h2>

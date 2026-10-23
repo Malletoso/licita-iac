@@ -78,7 +78,7 @@ test('modo Secretaria gera só as peças pedidas pela Licitação', async () => 
   const { pecas } = C.montarPecas(p, cfg, { simples: true });
   assert.deepEqual(pecas.map(d => d.id), ['etp', 'tr', 'precos', 'pedido', 'designacao']);
   const tr = pecas.find(d => d.id === 'tr');
-  assert.ok(tr.blocks.some(b => /definida pela unidade de licitações/.test(b.text || '')), 'TR não decide o enquadramento');
+  assert.ok(tr.blocks.some(b => /definida pela Secretaria de Licitação/.test(b.text || '')), 'TR não decide o enquadramento');
   const pedido = pecas.find(d => d.id === 'pedido');
   assert.equal(pedido.blocks.filter(b => b.t === 'pb').length, 2, 'uma página por fornecedor');
   const buf = await docx.Packer.toBuffer(C.paraDocx(docx, pecas, p, cfg));
@@ -144,4 +144,32 @@ test('exclusividade ME/EPP é avaliada por lote', () => {
   assert.deepEqual(C.exclusivosME(p, cfg), { tipo: 'lotes', lista: ['1'] });
   p.itens[0].qtd = 5000;
   assert.deepEqual(C.exclusivosME(p, cfg).lista, []);
+});
+
+const RV = require('../src/revisor.js');
+
+test('revisor corrige erros comuns sem mudar o sentido', () => {
+  const r = RV.corrigirTexto('aquisicao de material nescessário para o balcao ,afim de atender  as escolas', { ponto: true });
+  assert.equal(r.texto, 'Aquisição de material necessário para o balcão, a fim de atender as escolas.');
+  assert.equal(RV.corrigirTexto('Entrega às 11:30, caixas de 1,50 m e site www.iacanga.sp.gov.br').texto, 'Entrega às 11:30, caixas de 1,50 m e site www.iacanga.sp.gov.br', 'horários, decimais e endereços ficam intactos');
+});
+
+test('revisor aponta texto genérico e recomenda como escrever', () => {
+  const r = RV.revisarTexto('necessidade', 'Para atender as necessidades da secretaria.');
+  assert.ok(r.generico);
+  assert.ok(r.avisos.some(a => a.nivel === 'recomenda' && /arquivo final/.test(a.msg)));
+  const bom = RV.revisarTexto('necessidade', 'As 6 escolas municipais, com 1.250 alunos, estão sem material de limpeza desde agosto, e a Vigilância Sanitária exige higienização diária.');
+  assert.ok(!bom.generico);
+  assert.ok(RV.revisarTexto('item', 'Detergente marca X').avisos.some(a => /marca/.test(a.msg)));
+});
+
+test('peças saem com as correções aplicadas e sem pendência de número no modo Secretaria', () => {
+  const cfg = C.cfgPadrao(), p = clone(C.procExemplo());
+  p.demanda.necessidade = 'falta agua nas escolas ha meses';
+  const { pecas } = C.montarPecas(p, cfg, { simples: true });
+  const etp = pecas.find(d => d.id === 'etp');
+  assert.ok(etp.blocks.some(b => /Falta água nas escolas/.test(b.text || '')));
+  assert.ok(JSON.stringify(etp).includes('a ser atribuído pela Secretaria de Licitação'));
+  assert.ok(!JSON.stringify(etp).includes('⟦nº do processo⟧'));
+  assert.equal(p.demanda.necessidade, 'falta agua nas escolas ha meses', 'o texto do usuário não é alterado');
 });

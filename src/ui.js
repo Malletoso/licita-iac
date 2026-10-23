@@ -73,7 +73,8 @@ function campo(lbl, path, o = {}) {
   if (o.type === 'textarea') ctl = `<textarea id="${id}" data-path="${path}" rows="${o.rows || 3}" placeholder="${esc(o.ph || '')}"${rr}>${esc(v)}</textarea>`;
   else if (o.type === 'select') ctl = `<select id="${id}" data-path="${path}"${rr}>${o.options.map(([val, l]) => `<option value="${esc(val)}"${String(v) === String(val) ? ' selected' : ''}>${esc(l)}</option>`).join('')}</select>`;
   else ctl = `<input id="${id}" type="${o.type || 'text'}" data-path="${path}"${o.type === 'number' ? ' data-type="num" step="any" inputmode="decimal"' : ''} value="${esc(v)}" placeholder="${esc(o.ph || '')}"${rr}>`;
-  return `<div class="field${o.cls ? ' ' + o.cls : ''}"><label for="${id}">${lbl}${req}${art}</label>${ctl}${hint}</div>`;
+  const rev = o.rev ? `<div class="rev" data-rev="${path}" data-tipo="${o.rev}">${revHTML(o.rev, v, path)}</div><div class="rev-ia" data-ia="${path}">${iaHTML(path)}</div>` : '';
+  return `<div class="field${o.cls ? ' ' + o.cls : ''}"><label for="${id}">${lbl}${req}${art}</label>${ctl}${hint}${rev}</div>`;
 }
 const EXPLICA_LOTES = `<div class="ajuda explica">
   <p><b>Por item:</b> cada item é uma disputa separada e pode ter um vencedor diferente. É a regra da lei (art. 40, V, "b") e do TCU (Súmula 247).</p>
@@ -160,6 +161,7 @@ const VIEWS = {
       ${campo('Telefone', 'cfg.fone')}${campo('E-mail', 'cfg.email')}
       ${campo('Cidade', 'cfg.cidade')}${campo('UF', 'cfg.uf', { rr: 1, hint: 'Em SP, o app inclui o Termo de Ciência e de Notificação do TCESP.' })}
       ${campo('Comarca (foro do contrato)', 'cfg.comarca', { art: 'art. 92, §1º' })}${campo('Sítio eletrônico oficial', 'cfg.site')}
+      ${campo('Nome da unidade de licitações', 'cfg.nomeLicitacao', { hint: 'Aparece no modo Secretaria e nos documentos: "número a ser atribuído pela …".' })}
       ${campo('Plataforma de licitação eletrônica', 'cfg.plataforma', { ph: 'BEC/SP, BLL, Licitanet…' })}${campo('Diário oficial', 'cfg.diario')}
       </div>
       ${campo('Município com até 20 mil habitantes', 'cfg.ate20mil', { type: 'check', art: 'art. 176', hint: 'Prazo de transição até 01/04/2027 para licitação eletrônica obrigatória, agentes e divulgação em sítio oficial.' })}
@@ -191,13 +193,13 @@ const VIEWS = {
 
   demanda() {
     return bloco('Identificação', `<div class="grid2">
-      ${campo('Número do processo administrativo', 'proc.numero', { ph: '123/2026' })}${campo('Data', 'proc.demanda.data', { type: 'date' })}
+      ${campo('Número do processo administrativo', 'proc.numero', { ph: '123/2026', hint: `Atribuído pela ${esc(setorLic(R.cfg))} ao receber o pedido.` })}${campo('Data', 'proc.demanda.data', { type: 'date' })}
       ${campo('Secretaria', 'proc.demanda.secretaria')}${campo('Unidade requisitante', 'proc.demanda.unidade', { req: true })}
       ${campo('Responsável pela demanda', 'proc.demanda.responsavel', { req: true })}${campo('Cargo', 'proc.demanda.cargo')}
       ${campo('Prioridade', 'proc.demanda.prioridade', { type: 'select', options: [['alta', 'Alta'], ['media', 'Média'], ['baixa', 'Baixa']] })}${campo('Data pretendida para início', 'proc.demanda.dataPretendida', { type: 'date' })}</div>`)
       + bloco('Justificativa', `
-      ${campo('Problema a resolver', 'proc.demanda.necessidade', { type: 'textarea', rows: 5, req: true, art: 'art. 18, §1º, I', hint: 'Descreva o problema com fatos e números, sob a ótica do interesse público. "Para atender às necessidades da Secretaria" não é justificativa.' })}
-      ${campo('Consequências da não contratação', 'proc.demanda.consequencias', { type: 'textarea', rows: 3 })}
+      ${campo('Problema a resolver', 'proc.demanda.necessidade', { rev: 'necessidade', type: 'textarea', rows: 5, req: true, art: 'art. 18, §1º, I', hint: 'Descreva o problema com fatos e números, sob a ótica do interesse público. "Para atender às necessidades da Secretaria" não é justificativa.' })}
+      ${campo('Consequências da não contratação', 'proc.demanda.consequencias', { rev: 'consequencias', type: 'textarea', rows: 3 })}
       <div class="grid2">${campo('Plano de Contratações Anual', 'proc.demanda.pca', { type: 'select', rr: 1, art: 'art. 12, VII', options: [['nao_elaborado', 'O Município não elaborou PCA'], ['sim', 'Prevista no PCA'], ['nao', 'Não prevista no PCA']] })}
       ${R.proc.demanda.pca === 'sim' ? campo('Referência no PCA', 'proc.demanda.pcaRef') : ''}</div>`);
   },
@@ -206,28 +208,28 @@ const VIEWS = {
     const p = R.proc;
     const nat = Object.entries(NAT).map(([k, v]) => [k, v.l]);
     const itens = p.itens.map((it, i) => `<div class="item"><div class="item-h"><span class="idx">Item ${i + 1}</span>${p.itens.length > 1 ? `<button class="btn ghost small" data-act="del-item" data-i="${i}" style="margin-left:auto">Remover item</button>` : ''}</div>
-      ${campo('Especificação', `proc.itens.${i}.desc`, { type: 'textarea', rows: 2, req: true, hint: 'Sem marca, salvo justificativa técnica. Indique o que permite aferir qualidade.' })}
+      ${campo('Especificação', `proc.itens.${i}.desc`, { type: 'textarea', rows: 2, req: true, rev: 'item', hint: 'Sem marca, salvo justificativa técnica. Indique o que permite aferir qualidade.' })}
       <div class="grid3">${p.objeto.parcelamento === 'lotes' ? campo('Lote', `proc.itens.${i}.lote`, { type: 'number', rr: 1 }) : ''}${campo('Unidade', `proc.itens.${i}.unid`)}${campo('Quantidade', `proc.itens.${i}.qtd`, { type: 'number' })}${campo('CATMAT/CATSER', `proc.itens.${i}.catmat`)}</div></div>`).join('');
     return bloco('Natureza e escopo', `<div class="grid2">
       ${campo('Natureza do objeto', 'proc.objeto.natureza', { type: 'select', rr: 1, options: nat, hint: 'Define modalidade, limite de dispensa e cabimento do pregão.' })}
-      ${campo('Objeto em uma frase', 'proc.objeto.resumo', { req: true })}</div>
+      ${campo('Objeto em uma frase', 'proc.objeto.resumo', { req: true, rev: 'resumo' })}</div>
       ${campo('Compra com entrega imediata e sem obrigações futuras', 'proc.objeto.entregaImediata', { type: 'check', rr: 1, art: 'art. 95, II', hint: 'Entrega em até 30 dias da ordem de fornecimento (art. 6º, X).' })}
       ${campo('Serviço ou fornecimento contínuo', 'proc.objeto.continuo', { type: 'check', rr: 1, art: 'art. 106' })}
       ${p.objeto.continuo ? `<div class="sub">${campo('Vigência em meses', 'proc.objeto.vigenciaMeses', { type: 'number' })}</div>` : ''}`)
       + bloco('Itens', `${itens}<div class="btns"><button class="btn" data-act="add-item">Adicionar item</button></div>
-      ${campo('Memória de cálculo das quantidades', 'proc.objeto.memoriaQtd', { type: 'textarea', req: true, art: 'art. 18, §1º, IV', hint: 'Consumo histórico, levantamento de campo, população atendida. Quantidade sem memória de cálculo é apontamento certo.' })}`)
+      ${campo('Memória de cálculo das quantidades', 'proc.objeto.memoriaQtd', { rev: 'memoria', type: 'textarea', req: true, art: 'art. 18, §1º, IV', hint: 'Consumo histórico, levantamento de campo, população atendida. Quantidade sem memória de cálculo é apontamento certo.' })}`)
       + bloco('Estudo técnico preliminar', `
-      ${campo('Requisitos da contratação', 'proc.objeto.requisitos', { type: 'textarea', art: 'III' })}
-      ${campo('Levantamento de mercado e alternativas', 'proc.objeto.alternativas', { type: 'textarea', art: 'V', hint: 'Quais soluções existem e por que esta foi escolhida.' })}
-      ${campo('Descrição da solução como um todo', 'proc.objeto.solucao', { type: 'textarea', art: 'VII' })}
+      ${campo('Requisitos da contratação', 'proc.objeto.requisitos', { rev: 'texto', type: 'textarea', art: 'III' })}
+      ${campo('Levantamento de mercado e alternativas', 'proc.objeto.alternativas', { rev: 'texto', type: 'textarea', art: 'V', hint: 'Quais soluções existem e por que esta foi escolhida.' })}
+      ${campo('Descrição da solução como um todo', 'proc.objeto.solucao', { rev: 'texto', type: 'textarea', art: 'VII' })}
       <div class="grid2">${campo('Julgamento', 'proc.objeto.parcelamento', { type: 'select', rr: 1, options: [['itens', 'Por item — um vencedor por item'], ['lotes', 'Por lote — um vencedor por lote'], ['global', 'Global — um vencedor para tudo']], art: 'VIII' })}<span></span></div>
       ${EXPLICA_LOTES}${p.objeto.parcelamento === 'lotes' ? `<p class="hint">${esc(composicaoLotes(p))} Informe o número do lote em cada item, acima.</p>` : ''}
-      ${campo('Justificativa do parcelamento ou não', 'proc.objeto.justParcelamento', { type: 'textarea', req: true, art: 'VIII', hint: 'A regra é parcelar (art. 40, V, "b"). Julgamento global ou por lote exige razão técnica ou econômica.' })}
-      ${campo('Resultados pretendidos', 'proc.objeto.resultados', { type: 'textarea', art: 'IX' })}
-      ${campo('Providências prévias ao contrato', 'proc.objeto.providencias', { type: 'textarea', art: 'X' })}
+      ${campo('Justificativa do parcelamento ou não', 'proc.objeto.justParcelamento', { rev: 'justificativa', type: 'textarea', req: true, art: 'VIII', hint: 'A regra é parcelar (art. 40, V, "b"). Julgamento global ou por lote exige razão técnica ou econômica.' })}
+      ${campo('Resultados pretendidos', 'proc.objeto.resultados', { rev: 'texto', type: 'textarea', art: 'IX' })}
+      ${campo('Providências prévias ao contrato', 'proc.objeto.providencias', { rev: 'texto', type: 'textarea', art: 'X' })}
       ${campo('Contratações correlatas ou interdependentes', 'proc.objeto.correlatas', { type: 'textarea', art: 'XI' })}
-      ${campo('Impactos ambientais e medidas mitigadoras', 'proc.objeto.impactos', { type: 'textarea', art: 'XII' })}
-      ${campo('Posicionamento conclusivo', 'proc.objeto.conclusao', { type: 'textarea', req: true, art: 'XIII' })}`);
+      ${campo('Impactos ambientais e medidas mitigadoras', 'proc.objeto.impactos', { rev: 'texto', type: 'textarea', art: 'XII' })}
+      ${campo('Posicionamento conclusivo', 'proc.objeto.conclusao', { rev: 'conclusao', type: 'textarea', req: true, art: 'XIII' })}`);
   },
 
   precos() {
@@ -545,6 +547,8 @@ document.addEventListener('input', e => {
   }
   if (!el.dataset || !el.dataset.path || el.type === 'checkbox' || el.tagName === 'SELECT') return;
   setPath(el.dataset.path, valorDe(el)); salvarTudo(el.dataset.path); agendarRail();
+  if (IA[el.dataset.path] && IA[el.dataset.path].estado !== 'pensando') delete IA[el.dataset.path];
+  if (qs(`.rev[data-rev="${el.dataset.path}"]`)) agendarRev(el.dataset.path);
 });
 document.addEventListener('change', e => {
   const el = e.target;
@@ -584,6 +588,11 @@ document.addEventListener('click', e => {
   const p = R.proc, i = +b.dataset.i, j = +b.dataset.j, act = b.dataset.act;
   const rr = () => { salvarTudo(); rerender(); };
   switch (act) {
+    case 'rev-aplicar': trocarTexto(b.dataset.path, revisarTexto(b.dataset.tipo, getPath(b.dataset.path)).corrigido); toast('Correções aplicadas.'); break;
+    case 'rev-ia': revisarComIA(b.dataset.path, b.dataset.tipo); break;
+    case 'rev-ia-parar': if (IA[b.dataset.path] && IA[b.dataset.path].ctl) IA[b.dataset.path].ctl.abort(); break;
+    case 'rev-ia-fechar': delete IA[b.dataset.path]; atualizarRev(b.dataset.path); break;
+    case 'rev-ia-usar': { const x = IA[b.dataset.path]; delete IA[b.dataset.path]; if (x && x.texto) { trocarTexto(b.dataset.path, x.texto); toast('Texto atualizado.'); } break; }
     case 'modo': ATIVO.modo = b.dataset.m; CONFIRMA = null; salvarTudo(); render(); window.scrollTo({ top: 0 }); break;
     case 'sugerir': setPath(b.dataset.path, SUGESTOES[b.dataset.k]); rr(); break;
     case 's-add-forn': p.pedido.fornecedores.push({ id: uid(), nome: '', contato: '' }); rr(); break;
@@ -638,5 +647,6 @@ document.addEventListener('click', e => {
   if (!CFGS[ATIVO.cfg]) ATIVO.cfg = Object.keys(CFGS)[0];
   if (!PROCS[ATIVO.proc]) { if (!Object.keys(PROCS).length) { const p = procVazio(); PROCS[p.id] = p; } ATIVO.proc = Object.keys(PROCS)[0]; }
   render();
+  if (window.claude && window.claude.use) window.claude.use('sample').then(s => { if (s) { SAMPLE = s; atualizarTodosRev(); } }).catch(() => {});
   Store.conectar().then(ok => { if (ok) { Object.values(PROCS).forEach(normalizarProc); Object.values(CFGS).forEach(normalizarCfg); if (!CFGS[ATIVO.cfg]) ATIVO.cfg = Object.keys(CFGS)[0]; if (!PROCS[ATIVO.proc]) ATIVO.proc = Object.keys(PROCS)[0]; if (!PROCS[ATIVO.proc]) { const p = procVazio(); PROCS[p.id] = p; ATIVO.proc = p.id; Store.salvar('proc', p); } Store.gravarLocal(); render(); } });
 })();

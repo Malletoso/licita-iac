@@ -12,10 +12,12 @@ const DOCX_VERSAO = JSON.parse(ler('node_modules/docx/package.json')).version;
 
 const shell = ler('src/shell.html');
 const assets = ler('src/assets.js');
+const revisor = ler('src/revisor.js');
 const core = ler('src/core.js');
 const ui = ler('src/ui.js');
 const simples = ler('src/simples.js');
-const app = `${assets}\n${core}\n${simples}\n${ui}`;
+const revisorUi = ler('src/revisor-ui.js');
+const app = `${assets}\n${revisor}\n${core}\n${revisorUi}\n${simples}\n${ui}`;
 
 // ---------- artefato (claude.ai): página única, docx pela CDN ----------
 mkdirSync(join(raiz, 'dist'), { recursive: true });

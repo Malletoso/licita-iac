@@ -35,6 +35,12 @@ Os dados ficam salvos **no navegador do computador em uso**. Limpar os dados do 
 
 O julgamento pode ser **por item** (regra: cada item tem seu vencedor), **por lote** (itens agrupados; cada lote tem seu vencedor, que fornece todos os itens do lote) ou **global** (uma empresa para tudo). Lote e global exigem justificativa (art. 40, V, "b", e §3º; Súmula 247 do TCU). As tabelas das peças saem agrupadas por lote, com subtotais; a exclusividade de ME/EPP é avaliada por lote; edital, contrato e ata registram que cada vencedor assina o seu próprio instrumento.
 
+## Revisão de texto
+
+Abaixo dos campos de texto, o app aponta erros de digitação e acentuação conhecidos, texto genérico ("atender às necessidades", "diversos", falta de números, conta ausente na memória de cálculo, marca no item) e recomenda como escrever no arquivo final, com exemplo. As correções ortográficas seguras entram automaticamente nos documentos; o texto digitado pelo usuário não é alterado sem que ele aplique.
+
+A revisão de redação por IA ("Revisar redação com IA") só aparece quando o app é aberto dentro do claude.ai, e usa a conta Claude de quem está usando. A versão do GitHub Pages funciona sem IA, só com as regras locais (`src/revisor.js`).
+
 ## Identidade visual
 
 Todas as peças saem com o cabeçalho da Prefeitura (brasão, nome sublinhado, endereço, telefone e CNPJ) e o brasão esmaecido a 10% ao fundo de cada página. Os dados vêm do perfil do órgão, na etapa Município; outro município pode enviar o próprio brasão e desligar a marca d'água.
@@ -71,6 +77,8 @@ Estrutura:
 src/core.js       motor de regras, textos das peças e conversão para .docx (sem DOM)
 src/ui.js         interface do modo Licitações e partes comuns
 src/simples.js    passo a passo do modo Secretaria
+src/revisor.js    correções e avisos de redação (sem DOM)
+src/revisor-ui.js avisos na tela e revisão por IA no claude.ai
 src/shell.html    marcação e estilos
 src/assets.js     logo, brasão e marca d'água em data URI (gerado)
 scripts/build.mjs monta o site (PWA) e o arquivo único

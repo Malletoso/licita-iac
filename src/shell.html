@@ -161,14 +161,13 @@ aside.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 72px); 
 .folha { background: #fff; color: #1a1a1a; overflow: auto; border-radius: 6px; font: 14px/1.55 Arial, "Helvetica Neue", sans-serif; flex: 1; min-height: 0; position: relative }
 .folha-in { position: relative; padding: 40px 56px 48px }
 .folha.com-marca .folha-in::before { content: ""; position: absolute; left: 50%; top: 330px; width: min(210px, 35%); aspect-ratio: .845; transform: translateX(-50%); background: var(--marca) center / contain no-repeat; opacity: .10; pointer-events: none }
-.cab { display: grid; grid-template-columns: 70px minmax(0, 1fr) 70px; align-items: center; gap: 8px; margin-bottom: 22px; font-family: Arial, "Helvetica Neue", sans-serif; color: #1a1a1a }
-.cab:not(:has(img)) { grid-template-columns: minmax(0, 1fr) }
-.cab img { width: 70px; height: auto; display: block }
-.cab-t { display: flex; flex-direction: column; align-items: center; text-align: center; font-size: 11px; line-height: 1.35; min-width: 0 }
+.cab { display: flex; justify-content: center; align-items: center; gap: 14px; margin-bottom: 22px; font-family: Arial, "Helvetica Neue", sans-serif; color: #1a1a1a }
+.cab img { width: 66px; height: auto; display: block; flex: none }
+.cab-t { display: flex; flex-direction: column; align-items: center; text-align: center; font-size: 11px; line-height: 1.35; min-width: 0; max-width: 470px }
 .cab-t b { font-size: 20px; color: #1f3864; text-decoration: underline; text-underline-offset: 3px; margin-bottom: 4px; line-height: 1.2 }
 .cab-t .n { font-weight: 700 }
 .cab-prev { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 14px; overflow-x: auto }
-.cab-prev .cab { margin: 0; min-width: 420px }
+.cab-prev .cab { margin: 0 }
 .lbl-prev { font-size: 13px; font-weight: 500 }
 .folha h4 { text-align: center; margin: 0; font-size: 16px }
 .folha .subt { text-align: center; font-style: italic; color: #555; font-size: 12.5px; margin: 2px 0 16px }
@@ -249,6 +248,18 @@ body.simples .head-passo p { font-size: 16.5px }
 .lote-in input { width: 70px; padding: 6px 8px !important }
 table.t tr.lote-h td { background: var(--accent-soft); font-weight: 600 }
 table.t tr.lote-t td { font-size: 13px; color: var(--muted) }
+.rev-box { margin-top: 4px; border-left: 3px solid var(--warn); background: var(--warn-soft); border-radius: 0 8px 8px 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 6px; font-size: 13.5px }
+.rev-box.ok { border-left-color: var(--ok); background: var(--ok-soft); flex-direction: row; align-items: center; justify-content: space-between; flex-wrap: wrap }
+.rev-box.ia { border-left-color: var(--accent); background: var(--accent-soft) }
+.rev-box p { margin: 0 }
+.rev-box .btns:empty { display: none }
+.rv { display: grid; grid-template-columns: 22px minmax(0, 1fr); gap: 6px; align-items: start }
+.rv-ic { width: 20px; height: 20px; border-radius: 50%; display: grid; place-items: center; font: 700 11px/1 var(--f-mono); background: var(--surface); color: var(--muted) }
+.rv.generico .rv-ic { color: var(--warn) } .rv.erro .rv-ic { color: var(--accent) } .rv.recomenda .rv-ic { color: var(--ok) }
+.rv em { color: var(--muted) }
+.rv-t { font-weight: 600 }
+.rev-box blockquote { margin: 0; background: var(--surface); border-radius: 6px; padding: 10px 12px; white-space: pre-wrap }
+.info-num { margin: 0; padding: 11px 12px; border: 1px dashed var(--line); border-radius: 6px; color: var(--muted); font-size: 15px }
 @media (max-width: 1180px) {
   .wrap { grid-template-columns: 190px minmax(0, 1fr) }
   aside.rail { grid-column: 2; position: static; max-height: none; overflow: visible }
@@ -263,9 +274,8 @@ table.t tr.lote-t td { font-size: 13px; color: var(--muted) }
   .span2 { grid-column: auto }
   .head-passo h1 { font-size: 23px }
   .folha-in { padding: 22px 16px }
-  .cab { grid-template-columns: 48px minmax(0, 1fr) }
+  .cab { gap: 10px }
   .cab img { width: 48px }
-  .cab i { display: none }
   .cab-t b { font-size: 16px }
   .doc-row { grid-template-columns: 46px minmax(0, 1fr) }
   .doc-row .btns { grid-column: 1 / -1 }
