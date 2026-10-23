@@ -1035,7 +1035,7 @@ function paraDocx(D, pecas, p, cfg, opts = {}) {
       ] })] }));
     } else ch.push(...textos);
     if (marca) {
-      const wm = 400, hm = Math.round(wm / prop);
+      const wm = 200, hm = Math.round(wm / prop);
       ch.push(new Paragraph({ children: [new ImageRun({ type: tipoImg(marca), data: b64ToBytes(marca), transformation: { width: wm, height: hm },
         floating: { horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, align: HorizontalPositionAlign.CENTER }, verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, align: VerticalPositionAlign.CENTER },
           behindDocument: true, allowOverlap: true, wrap: { type: TextWrappingType.NONE } } })] }));
