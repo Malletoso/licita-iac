@@ -117,17 +117,23 @@ function procExemplo() {
     },
     itens: [
       { id: uid(), desc: 'Muda de ipê-amarelo (Handroanthus chrysotrichus), altura mínima de 1,50 m, em embalagem de 15 L', unid: 'un', qtd: 120, catmat: '', precoRef: '', cot: [
-        { id: uid(), fonte: 'Viveiro A — orçamento', param: 'IV', data: hoje, valor: 42.5, excluir: false },
-        { id: uid(), fonte: 'Viveiro B — orçamento', param: 'IV', data: hoje, valor: 39.9, excluir: false },
+        { id: uid(), orcId: 'o1', fonte: 'Viveiro A', param: 'IV', data: hoje, valor: 42.5, excluir: false },
+        { id: uid(), orcId: 'o2', fonte: 'Viveiro B', param: 'IV', data: hoje, valor: 39.9, excluir: false },
         { id: uid(), fonte: 'Contrato de município vizinho (PNCP)', param: 'II', data: hoje, valor: 41.0, excluir: false }
       ] },
       { id: uid(), desc: 'Muda de pau-brasil (Paubrasilia echinata), altura mínima de 1,50 m, em embalagem de 15 L', unid: 'un', qtd: 80, catmat: '', precoRef: '', cot: [
-        { id: uid(), fonte: 'Viveiro A — orçamento', param: 'IV', data: hoje, valor: 58.0, excluir: false },
-        { id: uid(), fonte: 'Viveiro B — orçamento', param: 'IV', data: hoje, valor: 54.5, excluir: false },
-        { id: uid(), fonte: 'Viveiro C — orçamento', param: 'IV', data: hoje, valor: 96.0, excluir: true, just: 'Valor 70% acima da mediana dos demais, desconsiderado como excessivamente elevado.' }
+        { id: uid(), orcId: 'o1', fonte: 'Viveiro A', param: 'IV', data: hoje, valor: 58.0, excluir: false },
+        { id: uid(), orcId: 'o2', fonte: 'Viveiro B', param: 'IV', data: hoje, valor: 54.5, excluir: false },
+        { id: uid(), orcId: 'o3', fonte: 'Viveiro C', param: 'IV', data: hoje, valor: 96.0, excluir: true, just: 'Valor 70% acima da mediana dos demais, desconsiderado como excessivamente elevado.' }
       ] }
     ],
     pesquisa: { metodo: 'mediana', just: '' },
+    orcs: [
+      { id: 'o1', empresa: 'Viveiro A', cnpj: '', data: hoje },
+      { id: 'o2', empresa: 'Viveiro B', cnpj: '', data: hoje },
+      { id: 'o3', empresa: 'Viveiro C', cnpj: '', data: hoje }
+    ],
+    pedido: { prazoResposta: '', contato: '', fornecedores: [{ id: uid(), nome: 'Viveiro A', contato: '' }, { id: uid(), nome: 'Viveiro B', contato: '' }, { id: uid(), nome: 'Viveiro C', contato: '' }] },
     situacao: {
       gastoExercicio: 0, gastoDesc: '', gastoConfirmado: false, exclusivo: false, artista: false, tecnico: false, tecnicoAlinea: '', notoria: '', credenciamento: false, credHip: 'I',
       imovel: false, emergencia: false, emergData: '', emergDesc: '', frustrada: false, frustradaData: '', frustradaMotivo: 'deserta', frustradaRef: '',
@@ -156,7 +162,35 @@ function procVazio() {
   p.objeto.natureza = 'compra'; p.objeto.parcelamento = 'itens'; p.objeto.entregaImediata = false;
   p.itens = [{ id: uid(), desc: '', unid: 'un', qtd: 1, catmat: '', precoRef: '', cot: [] }];
   ['prazo', 'local', 'recebimento', 'garantia'].forEach(k => p.execucao[k] = '');
+  p.orcs = []; p.pedido = { prazoResposta: '', contato: '', fornecedores: [] };
   return p;
+}
+
+/* Completa campos que versões anteriores não tinham */
+function normalizarProc(p) {
+  if (!p.orcs) p.orcs = [];
+  if (!p.pedido) p.pedido = { prazoResposta: '', contato: '', fornecedores: [] };
+  if (!p.pedido.fornecedores) p.pedido.fornecedores = [];
+  (p.itens || []).forEach(it => { if (!it.cot) it.cot = []; });
+  return p;
+}
+
+/* Orçamentos lançados por empresa (modo Secretaria) viram preços por item */
+function syncOrcs(p) {
+  normalizarProc(p);
+  const porId = Object.fromEntries(p.orcs.map(o => [o.id, o]));
+  p.itens.forEach(it => {
+    it.cot = it.cot.filter(c => !c.orcId || porId[c.orcId]);
+    it.cot.forEach(c => { const o = porId[c.orcId]; if (o) { c.fonte = o.empresa || 'Empresa sem nome'; c.data = o.data; c.param = 'IV'; } });
+  });
+  return p;
+}
+function valorOrc(p, orcId, itemId) { const it = p.itens.find(x => x.id === itemId); const c = it && it.cot.find(x => x.orcId === orcId); return c ? c.valor : ''; }
+function setValorOrc(p, orcId, itemId, valor) {
+  const it = p.itens.find(x => x.id === itemId); if (!it) return;
+  let c = it.cot.find(x => x.orcId === orcId);
+  if (!c) { const o = p.orcs.find(x => x.id === orcId) || {}; c = { id: uid(), orcId, fonte: o.empresa || '', param: 'IV', data: o.data || hojeISO(), valor: '', excluir: false }; it.cot.push(c); }
+  c.valor = valor;
 }
 
 /* ---------- Pesquisa de preços ---------- */
@@ -399,6 +433,7 @@ function docETP(p, cfg, a) {
     const out = [{ t: 'h', text: `${n}. ${tit}${obrig ? ' *' : ''}` }];
     if (has(val)) out.push({ t: 'p', text: val });
     else if (obrig) out.push({ t: 'p', text: '⟦' + label + '⟧' });
+    else if (a.simples) out.push({ t: 'p', text: 'Não identificado pela unidade requisitante nesta fase.' });
     else out.push({ t: 'p', text: 'Elemento não aplicável à presente contratação. ⟦justificar a não inclusão — art. 18, §2º⟧' });
     return out;
   };
@@ -408,7 +443,7 @@ function docETP(p, cfg, a) {
     { t: 'kv', rows: [['Processo', ph(p.numero, 'nº do processo')], ['Objeto', ph(o.resumo, 'objeto')], ['Natureza', NAT[o.natureza].l], ['Unidade requisitante', ph(d.unidade, 'unidade')]] },
     { t: 'note', text: 'Itens marcados com * são de inclusão obrigatória (art. 18, §2º). A ausência dos demais exige justificativa.' }
   ];
-  if (a.etpFacultativo) blocks.push({ t: 'note', text: 'Na hipótese de contratação adotada, o ETP é facultativo pelo regulamento federal (IN SEGES/ME nº 58/2022). Mantido em forma simplificada para instrução do processo.' });
+  if (a.etpFacultativo && !a.simples) blocks.push({ t: 'note', text: 'Na hipótese de contratação adotada, o ETP é facultativo pelo regulamento federal (IN SEGES/ME nº 58/2022). Mantido em forma simplificada para instrução do processo.' });
   blocks.push(
     ...sec(1, 'Descrição da necessidade', [d.necessidade, d.consequencias].filter(has).join(' '), true, 'descrição da necessidade'),
     { t: 'h', text: '2. Previsão no plano de contratações anual' }, { t: 'p', text: pcaTexto(d) },
@@ -418,7 +453,7 @@ function docETP(p, cfg, a) {
     { t: 'h', text: '6. Estimativa do valor da contratação *' },
     { t: 'p', text: `O valor estimado é de **${fmtBRL(a.est)}**, apurado pela ${p.pesquisa.metodo === 'media' ? 'média' : p.pesquisa.metodo === 'menor' ? 'menor valor' : 'mediana'} dos preços válidos coletados, conforme o relatório de pesquisa de preços anexo, nos termos do art. 23.` },
     ...sec(7, 'Descrição da solução como um todo', [o.solucao, p.execucao.garantia, p.execucao.assistencia].filter(has).join(' '), false),
-    { t: 'h', text: '8. Justificativa para o parcelamento ou não *' }, { t: 'p', text: `${parc} ${ph(o.justParcelamento, 'justificativa do parcelamento')}` },
+    { t: 'h', text: '8. Justificativa para o parcelamento ou não *' }, { t: 'p', text: p.itens.length === 1 && !has(o.justParcelamento) ? 'Objeto composto por item único, sem possibilidade de parcelamento.' : o.parcelamento === 'itens' && !has(o.justParcelamento) ? 'Adota-se o parcelamento por itens, regra do art. 40, V, "b", da Lei nº 14.133/2021, para que cada item seja disputado separadamente, ampliando a competição.' : `${parc} ${ph(o.justParcelamento, 'justificativa do parcelamento')}` },
     ...sec(9, 'Resultados pretendidos', o.resultados, false),
     ...sec(10, 'Providências prévias ao contrato', o.providencias, false),
     ...sec(11, 'Contratações correlatas ou interdependentes', o.correlatas, false),
@@ -445,7 +480,9 @@ function docRiscos(p, cfg, a) {
 function docTR(p, cfg, a) {
   const o = p.objeto, e = p.execucao, d = p.demanda;
   const crit = a.escolhida && a.escolhida.grupo === 'Licitação' ? criterioPadrao(p, a.escolhida, a.est, cfg) : 'menor preço';
-  const selecao = a.escolhida
+  const selecao = a.simples
+    ? 'A forma de seleção do fornecedor será definida pela unidade de licitações, nos termos da Lei nº 14.133/2021.'
+    : a.escolhida
     ? (a.direta
       ? `Contratação direta com fundamento no ${a.escolhida.base} da Lei nº 14.133/2021 (${a.escolhida.titulo.toLowerCase()}).${['75-I', '75-II'].includes(a.escolhida.id) ? ' A contratação será precedida de aviso em sítio eletrônico oficial pelo prazo mínimo de 3 dias úteis, para obtenção de propostas adicionais, selecionando-se a proposta de menor preço (art. 75, §3º).' : ''}`
       : `Licitação na modalidade ${a.escolhida.titulo.toLowerCase()}, ${cfg.ate20mil ? 'preferencialmente' : ''} na forma eletrônica, critério de julgamento ${crit}, ${({ itens: 'por item', lotes: 'por lote', global: 'global' })[o.parcelamento] || 'por item'}.`)
@@ -477,7 +514,7 @@ function docTR(p, cfg, a) {
     { t: 'h', text: '8. Forma e critérios de seleção do fornecedor' }, { t: 'p', text: selecao }, { t: 'p', text: habil },
     { t: 'h', text: '9. Estimativa do valor da contratação' },
     { t: 'p', text: `Valor total estimado de **${fmtBRL(a.est)}**, conforme relatório de pesquisa de preços, que contém os preços unitários referenciais e a memória de cálculo.` },
-    { t: 'h', text: '10. Adequação orçamentária' }, { t: 'p', text: `A despesa correrá à conta da dotação: ${dotacaoTexto(p.orcamento)}.` },
+    { t: 'h', text: '10. Adequação orçamentária' }, { t: 'p', text: a.simples ? 'A dotação orçamentária será indicada pela unidade de contabilidade.' : `A despesa correrá à conta da dotação: ${dotacaoTexto(p.orcamento)}.` },
     { t: 'h', text: '11. Obrigações das partes' },
     { t: 'p', text: `Do contratado: ${has(e.obrigContratada) ? e.obrigContratada : 'executar o objeto conforme este termo; reparar ou substituir, às suas expensas, o que for recusado; manter as condições de habilitação durante toda a execução; responder pelos encargos trabalhistas, previdenciários, fiscais e comerciais.'}` },
     { t: 'p', text: `Do contratante: ${has(e.obrigContratante) ? e.obrigContratante : 'prestar as informações necessárias; acompanhar e fiscalizar a execução; efetuar o pagamento no prazo; notificar o contratado de falhas encontradas.'}` },
@@ -492,7 +529,7 @@ function docTR(p, cfg, a) {
 function docPrecos(p, cfg, a) {
   const m = p.pesquisa.metodo, nomeM = { media: 'média', mediana: 'mediana', menor: 'menor valor' }[m];
   const blocks = [
-    { t: 'title', text: 'RELATÓRIO DE PESQUISA DE PREÇOS', sub: `Lei nº 14.133/2021, art. 23${cfg.regulamento === 'federal' ? ', e IN SEGES/ME nº 65/2021' : ''}` },
+    { t: 'title', text: a.simples ? 'MAPA DE ORÇAMENTOS' : 'RELATÓRIO DE PESQUISA DE PREÇOS', sub: `Lei nº 14.133/2021, art. 23${cfg.regulamento === 'federal' ? ', e IN SEGES/ME nº 65/2021' : ''}` },
     { t: 'kv', rows: [['Processo', ph(p.numero, 'nº do processo')], ['Objeto', ph(p.objeto.resumo, 'objeto')], ['Método', `${nomeM} dos preços válidos`]] },
     { t: 'p', text: `A pesquisa observou os parâmetros do art. 23, §1º, da Lei nº 14.133/2021. Os preços foram analisados criticamente; os valores desconsiderados estão identificados com a respectiva justificativa. O preço de referência de cada item corresponde à ${nomeM} dos preços válidos.` }
   ];
@@ -510,8 +547,10 @@ function docPrecos(p, cfg, a) {
   });
   blocks.push({ t: 'h', text: 'Resumo' }, itensTabela(p, true));
   if (has(p.pesquisa.just)) blocks.push({ t: 'p', text: p.pesquisa.just });
-  blocks.push({ t: 'p', text: `${cfg.cidade}, ${dataExtenso(p.demanda.data)}.`, align: 'right' }, { t: 'sig', nome: ph(cfg.agente.nome, 'nome do agente de contratação'), cargo: cfg.agente.cargo });
-  return { id: 'precos', titulo: 'Relatório de Pesquisa de Preços', sigla: 'PP', fund: 'art. 23', blocks };
+  if (a.simples) blocks.push({ t: 'note', text: 'Orçamentos obtidos junto a fornecedores (art. 23, §1º, IV). A unidade de licitações poderá complementar a pesquisa com os demais parâmetros do art. 23, como o Painel de Preços do PNCP e contratações similares de outros órgãos.' });
+  blocks.push({ t: 'p', text: `${cfg.cidade}, ${dataExtenso(p.demanda.data)}.`, align: 'right' },
+    a.simples ? { t: 'sig', nome: ph(p.demanda.responsavel, 'nome do responsável'), cargo: `${ph(p.demanda.cargo, 'cargo')} — ${ph(p.demanda.unidade, 'unidade')}` } : { t: 'sig', nome: ph(cfg.agente.nome, 'nome do agente de contratação'), cargo: cfg.agente.cargo });
+  return { id: 'precos', titulo: a.simples ? 'Mapa de Orçamentos' : 'Relatório de Pesquisa de Preços', sigla: a.simples ? 'MO' : 'PP', fund: 'art. 23', blocks };
 }
 
 function docOrcamento(p, cfg, a) {
@@ -615,14 +654,14 @@ function docJuridico(p, cfg, a, pecas) {
 
 function docDesignacao(p, cfg, a) {
   const e = p.execucao;
-  return { id: 'designacao', titulo: 'Designação de Gestor e Fiscal', sigla: 'DGF', fund: 'arts. 7º e 117', blocks: [
+  return { id: 'designacao', titulo: a.simples ? 'Termo de Responsabilidade (gestor e fiscal)' : 'Designação de Gestor e Fiscal', sigla: a.simples ? 'TRS' : 'DGF', fund: 'arts. 7º e 117', blocks: [
     { t: 'title', text: 'TERMO DE DESIGNAÇÃO E RESPONSABILIDADE DE GESTOR E FISCAL', sub: 'Lei nº 14.133/2021, arts. 7º e 117' },
-    { t: 'p', text: `A autoridade competente designa, para a contratação objeto do Processo Administrativo nº ${ph(p.numero, 'nº do processo')} (${ph(p.objeto.resumo, 'objeto')}):` },
+    { t: 'p', text: `${a.simples ? `O(A) ${ph(p.demanda.secretaria, 'secretaria')} indica` : 'A autoridade competente designa'}, para a contratação objeto do Processo Administrativo nº ${ph(p.numero, 'nº do processo')} (${ph(p.objeto.resumo, 'objeto')}):` },
     { t: 'kv', rows: [['Gestor', `${ph(e.gestor, 'nome do gestor')} — ${ph(e.gestorCargo, 'cargo')}`], ['Fiscal', `${ph(e.fiscal, 'nome do fiscal')} — ${ph(e.fiscalCargo, 'cargo')}`]] },
     { t: 'p', text: 'Compete ao fiscal acompanhar a execução, anotar em registro próprio as ocorrências, determinar a regularização de falhas e informar ao gestor, em tempo hábil, o que exceder sua competência (art. 117, §§ 1º e 2º). Compete ao gestor coordenar a gestão do contrato, acompanhar prazos, instruir aditivos e propor a aplicação de sanções.' },
     { t: 'p', text: 'Os designados declaram ter ciência das atribuições, que não mantêm vínculo de parentesco, técnico, comercial, econômico, financeiro, trabalhista ou civil com o contratado ou seus dirigentes (art. 7º, III, e art. 9º, §1º), e que comunicarão de imediato qualquer impedimento superveniente.' },
     { t: 'p', text: `${cfg.cidade}, ____ de ______________ de ${cfg.valores.ano}.`, align: 'right' },
-    { t: 'sig', nome: ph(cfg.autoridade.nome, 'nome da autoridade competente'), cargo: cfg.autoridade.cargo },
+    a.simples ? { t: 'sig', nome: ph(p.demanda.responsavel, 'nome do responsável'), cargo: `${ph(p.demanda.cargo, 'cargo')} — ${ph(p.demanda.secretaria, 'secretaria')}` } : { t: 'sig', nome: ph(cfg.autoridade.nome, 'nome da autoridade competente'), cargo: cfg.autoridade.cargo },
     { t: 'sig', nome: ph(e.gestor, 'nome do gestor'), cargo: 'Gestor — ciente' },
     { t: 'sig', nome: ph(e.fiscal, 'nome do fiscal'), cargo: 'Fiscal — ciente' }
   ] };
@@ -763,9 +802,37 @@ function docTCN(p, cfg, a) {
   ] };
 }
 
+function docPedido(p, cfg, a) {
+  const ped = p.pedido || {}, lista = (ped.fornecedores || []).length ? ped.fornecedores : [{ nome: '' }];
+  const blocks = [];
+  lista.forEach((f, i) => {
+    if (i) blocks.push({ t: 'pb' });
+    blocks.push(
+      { t: 'title', text: 'SOLICITAÇÃO DE ORÇAMENTO', sub: 'Pesquisa de preços — Lei nº 14.133/2021, art. 23, §1º, IV' },
+      { t: 'kv', rows: [['À empresa', ph(f.nome, 'nome da empresa')], ['Contato', ph(f.contato, 'e-mail ou telefone')], ['Processo', has(p.numero) ? p.numero : 'a ser numerado pela unidade de licitações']] },
+      { t: 'p', text: `O(A) ${ph(p.demanda.secretaria, 'secretaria')} da ${cfg.nome} solicita orçamento para ${ph(p.objeto.resumo, 'objeto')}, conforme a relação abaixo. O pedido destina-se à estimativa de preços e não gera compromisso de contratação.` },
+      { t: 'table', cols: [{ h: 'Item', w: 1 }, { h: 'Descrição', w: 6.5 }, { h: 'Unid.', w: 1.2 }, { h: 'Qtd.', w: 1.2 }, { h: 'Valor unit. (R$)', w: 2 }, { h: 'Valor total (R$)', w: 2 }],
+        rows: p.itens.map((it, k) => [String(k + 1), ph(it.desc, 'descrição do item'), it.unid || 'un', fmtNum(it.qtd, 0), '', '']), foot: ['', '**Total**', '', '', '', ''] },
+      { t: 'p', text: 'O orçamento deverá informar: razão social, CNPJ, endereço, telefone e e-mail; preço unitário e total de cada item, já incluídos tributos, frete e demais custos; prazo de validade da proposta, de no mínimo 60 (sessenta) dias; prazo de entrega ou execução; data e assinatura do responsável.' },
+      { t: 'p', text: `Local de entrega ou execução: ${ph(p.execucao.local, 'local')}. Prazo desejado: ${ph(p.execucao.prazo, 'prazo')}.` },
+      { t: 'p', text: `Pede-se o envio do orçamento até ${fmtData(ped.prazoResposta) || '⟦data limite⟧'}, para ${ph(ped.contato, 'e-mail ou endereço para resposta')}.` },
+      { t: 'p', text: `${cfg.cidade}, ${dataExtenso(p.demanda.data)}.`, align: 'right' },
+      { t: 'sig', nome: ph(p.demanda.responsavel, 'nome do responsável'), cargo: `${ph(p.demanda.cargo, 'cargo')} — ${ph(p.demanda.secretaria, 'secretaria')}` }
+    );
+  });
+  return { id: 'pedido', titulo: 'Pedido de Orçamento', sigla: 'PO', fund: 'art. 23, §1º, IV', blocks };
+}
+
 /* ---------- Lista de peças por cenário ---------- */
-function montarPecas(p, cfg) {
+function montarPecas(p, cfg, opts = {}) {
+  syncOrcs(p);
   const a = analisar(p, cfg);
+  if (opts.simples) {
+    a.simples = true;
+    const L = [docETP(p, cfg, a), docTR(p, cfg, a), docPrecos(p, cfg, a), docPedido(p, cfg, a), docDesignacao(p, cfg, a)];
+    L.forEach(d => { d.pendencias = contarPend(d.blocks); });
+    return { a, pecas: L };
+  }
   const L = [docDFD(p, cfg, a), docETP(p, cfg, a), docRiscos(p, cfg, a), docTR(p, cfg, a), docPrecos(p, cfg, a), docOrcamento(p, cfg, a)];
   if (a.escolhida) {
     if (a.direta) {
@@ -812,7 +879,7 @@ function b64ToBytes(dataUrl) {
 }
 
 function paraDocx(D, pecas, p, cfg) {
-  const { Document, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, ShadingType, Header, Footer, PageNumber, ImageRun, PageOrientation, VerticalAlign } = D;
+  const { Document, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, ShadingType, Header, Footer, PageNumber, ImageRun, PageOrientation, VerticalAlign, PageBreak } = D;
   const FONT = 'Arial';
   const runs = (s, o = {}) => textoParaSegmentos(s).map(g => new TextRun({ text: g.t, bold: !!(g.b || o.bold), italics: !!o.italics, size: o.size || 22, font: FONT, highlight: g.ph ? 'yellow' : undefined, allCaps: !!o.caps }));
   const P = (s, o = {}) => new Paragraph({ children: runs(s, o), alignment: o.align === 'right' ? AlignmentType.RIGHT : o.align === 'center' ? AlignmentType.CENTER : o.align === 'left' ? AlignmentType.LEFT : AlignmentType.JUSTIFIED, spacing: { before: o.before || 0, after: o.after == null ? 120 : o.after, line: 288 }, indent: o.indent ? { left: o.indent, hanging: o.hanging || 0 } : undefined, keepNext: !!o.keepNext });
@@ -846,6 +913,7 @@ function paraDocx(D, pecas, p, cfg) {
         case 'note': out.push(P(b.text, { italics: true, size: 18, align: 'left' })); break;
         case 'kv': out.push(tabela([{ h: 'Campo', w: 3 }, { h: 'Informação', w: 9 }], b.rows, null, false, larg, true)); out.push(P('', { after: 120 })); break;
         case 'table': out.push(tabela(b.cols, b.rows, b.foot, b.small, larg)); out.push(P('', { after: 120 })); break;
+        case 'pb': out.push(new Paragraph({ children: [new PageBreak()] })); break;
         case 'sig':
           out.push(P('', { after: 360 }));
           out.push(P('______________________________________', { align: 'center', after: 0 }));
@@ -880,4 +948,4 @@ function paraDocx(D, pecas, p, cfg) {
   return new Document({ creator: 'Licita IAC', title: pecas.length === 1 ? pecas[0].titulo : 'Processo ' + (p.numero || ''), styles: { default: { document: { run: { font: FONT, size: 22 } } } }, sections });
 }
 
-if (typeof module !== 'undefined') module.exports = { cfgPadrao, procExemplo, procVazio, analisar, montarPecas, paraDocx, estat, estimativa, NAT, precoUnit, totalItem };
+if (typeof module !== 'undefined') module.exports = { cfgPadrao, procExemplo, procVazio, normalizarProc, syncOrcs, setValorOrc, valorOrc, analisar, montarPecas, paraDocx, estat, estimativa, NAT, precoUnit, totalItem };

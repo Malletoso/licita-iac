@@ -13,7 +13,8 @@ const DOCX_VERSAO = JSON.parse(ler('node_modules/docx/package.json')).version;
 const shell = ler('src/shell.html');
 const core = ler('src/core.js');
 const ui = ler('src/ui.js');
-const app = `${core}\n${ui}`;
+const simples = ler('src/simples.js');
+const app = `${core}\n${simples}\n${ui}`;
 
 // ---------- artefato (claude.ai): página única, docx pela CDN ----------
 mkdirSync(join(raiz, 'dist'), { recursive: true });

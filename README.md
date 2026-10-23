@@ -10,7 +10,12 @@ Acesse o endereço do GitHub Pages do repositório. No Chrome ou no Edge, use **
 
 Os dados ficam salvos **no navegador do computador em uso**. Limpar os dados do navegador apaga os processos. Use **Exportar dados do processo (.json)** para guardar cópias e **Importar** para levá-las a outro computador.
 
-## Etapas
+## Dois modos
+
+- **Secretaria** (padrão): passo a passo em linguagem simples para as secretarias requisitantes. Gera só o que a Licitação pede: ETP, termo de referência, mapa de orçamentos, pedido de orçamento (uma folha por empresa) e termo de responsabilidade com a indicação de gestor e fiscal. No fim, o pedido é exportado em .json para a Licitação abrir no app.
+- **Licitações**: o processo completo descrito abaixo, com motor de enquadramento e todas as peças.
+
+## Etapas do modo Licitações
 
 | Etapa | O que define |
 |---|---|
@@ -54,7 +59,8 @@ Estrutura:
 
 ```
 src/core.js       motor de regras, textos das peças e conversão para .docx (sem DOM)
-src/ui.js         interface
+src/ui.js         interface do modo Licitações e partes comuns
+src/simples.js    passo a passo do modo Secretaria
 src/shell.html    marcação e estilos
 scripts/build.mjs monta o site (PWA) e o arquivo único
 test/             testes do motor (node:test)

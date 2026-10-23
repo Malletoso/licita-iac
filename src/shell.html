@@ -179,6 +179,56 @@ aside.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 72px); 
 .toast { position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 8px; font-size: 14px; box-shadow: var(--shadow); max-width: calc(100% - 32px) }
 .confirma { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; font-size: 13.5px; background: var(--bad-soft); padding: 8px 10px; border-radius: 6px }
 
+
+/* ---------- modo Secretaria ---------- */
+.modo { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden }
+.modo button { border: 0; background: var(--surface); padding: 6px 12px; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--muted) }
+.modo button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink) }
+body.simples { font-size: 16.5px }
+body.simples .wrap { grid-template-columns: minmax(0, 780px); justify-content: center }
+body.simples nav.passos, body.simples aside.rail { display: none }
+body.simples .field > label { font-size: 15px; font-weight: 600 }
+body.simples input[type=text], body.simples input[type=number], body.simples input[type=date], body.simples input:not([type]), body.simples select, body.simples textarea { padding: 11px 12px; font-size: 16px }
+body.simples .head-passo h1 { font-size: 30px }
+body.simples .head-passo p { font-size: 16.5px }
+.s-card { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 20px; display: flex; flex-direction: column; gap: 14px; min-width: 0 }
+.s-card > h2 { font: 600 18px/1.3 var(--f-body); margin: 0 }
+.s-item { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 12px; min-width: 0 }
+.s-item .tot { margin-left: auto; font-variant-numeric: tabular-nums; font-size: 14px; color: var(--muted) }
+.ajuda { background: var(--accent-soft); border-radius: 8px; padding: 12px 14px; font-size: 15px; display: flex; flex-direction: column; gap: 6px }
+.ajuda:empty { display: none }
+.ajuda p { margin: 0 }
+.ajuda .ex { color: var(--muted) }
+.ajuda .ex b { color: var(--ink) }
+.opcoes { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px }
+.opcao { display: flex; gap: 12px; align-items: flex-start; border: 1.5px solid var(--line); border-radius: 10px; padding: 14px; cursor: pointer; background: var(--surface) }
+.opcao:hover { border-color: var(--accent) }
+.opcao.sel { border-color: var(--accent); background: var(--accent-soft) }
+.opcao input { accent-color: var(--accent); width: 20px; height: 20px; margin-top: 2px; flex: none }
+.opcao span { display: flex; flex-direction: column; gap: 2px; min-width: 0 }
+.opcao small { color: var(--muted); font-size: 13.5px }
+.btn.big { padding: 12px 20px; font-size: 16px; border-radius: 8px }
+.s-prog { display: flex; flex-direction: column; gap: 8px }
+.s-prog-t { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font: 500 13px/1.2 var(--f-mono); color: var(--muted) }
+.s-prog-t .salvo { color: var(--ok) }
+.s-mapa { display: flex; flex-wrap: wrap; gap: 6px }
+.s-mapa button { width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid var(--line); background: var(--surface); font: 600 14px/1 var(--f-mono); color: var(--muted); cursor: pointer }
+.s-mapa button.feito { border-color: var(--accent); color: var(--accent) }
+.s-mapa button.at { background: var(--accent); border-color: var(--accent); color: var(--accent-ink) }
+.s-nav { padding-top: 6px }
+.grid-forn { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 10px; align-items: end }
+.precos { display: flex; flex-direction: column; border-top: 1px solid var(--line) }
+.preco { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 12px; align-items: center; padding: 10px 0; border-bottom: 1px dashed var(--line) }
+.preco small { color: var(--muted) }
+.preco .rs { display: flex; align-items: center; gap: 6px; font-weight: 600 }
+.preco .rs input { width: 130px; text-align: right }
+.checks { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px }
+.checks li { display: grid; grid-template-columns: 28px minmax(0, 1fr) auto; gap: 10px; align-items: center }
+.checks .ic { width: 26px; height: 26px; border-radius: 50%; display: grid; place-items: center; font-weight: 700; font-size: 14px }
+.checks .ok .ic { background: var(--ok-soft); color: var(--ok) }
+.checks .falta .ic { background: var(--warn-soft); color: var(--warn) }
+.passos-envio { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: 6px }
+.hint.aviso { color: var(--warn) }
 @media (max-width: 1180px) {
   .wrap { grid-template-columns: 190px minmax(0, 1fr) }
   aside.rail { grid-column: 2; position: static; max-height: none; overflow: visible }
@@ -196,6 +246,12 @@ aside.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 72px); 
   .doc-row { grid-template-columns: 46px minmax(0, 1fr) }
   .doc-row .btns { grid-column: 1 / -1 }
   .autos select { max-width: 100% }
+  .opcoes { grid-template-columns: minmax(0, 1fr) }
+  .grid-forn { grid-template-columns: minmax(0, 1fr) auto }
+  .grid-forn .field:nth-child(2) { grid-column: 1 }
+  .preco { grid-template-columns: minmax(0, 1fr) }
+  body.simples .head-passo h1 { font-size: 25px }
+  .s-nav .btn.big { flex: 1; justify-content: center }
 }
 @media (prefers-reduced-motion: no-preference) { .btn, nav.passos button { transition: background .12s, color .12s, border-color .12s } }
 </style>

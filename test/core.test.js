@@ -72,3 +72,26 @@ test('todas as peças viram um .docx válido', async () => {
   assert.ok(buf.length > 10000);
   assert.equal(buf.subarray(0, 2).toString(), 'PK', 'arquivo .docx é um zip');
 });
+
+test('modo Secretaria gera só as peças pedidas pela Licitação', async () => {
+  const cfg = C.cfgPadrao(), p = clone(C.procExemplo());
+  const { pecas } = C.montarPecas(p, cfg, { simples: true });
+  assert.deepEqual(pecas.map(d => d.id), ['etp', 'tr', 'precos', 'pedido', 'designacao']);
+  const tr = pecas.find(d => d.id === 'tr');
+  assert.ok(tr.blocks.some(b => /definida pela unidade de licitações/.test(b.text || '')), 'TR não decide o enquadramento');
+  const pedido = pecas.find(d => d.id === 'pedido');
+  assert.equal(pedido.blocks.filter(b => b.t === 'pb').length, 2, 'uma página por fornecedor');
+  const buf = await docx.Packer.toBuffer(C.paraDocx(docx, pecas, p, cfg));
+  assert.equal(buf.subarray(0, 2).toString(), 'PK');
+});
+
+test('orçamentos por empresa alimentam a pesquisa e somem quando a empresa é removida', () => {
+  const cfg = C.cfgPadrao(), p = clone(C.procExemplo());
+  p.orcs.push({ id: 'o4', empresa: 'Viveiro D', cnpj: '', data: p.demanda.data });
+  C.setValorOrc(p, 'o4', p.itens[1].id, 55);
+  C.syncOrcs(p);
+  assert.equal(C.estat(p.itens[1]).n, 3);
+  p.orcs = p.orcs.filter(o => o.id !== 'o4');
+  C.syncOrcs(p);
+  assert.equal(C.estat(p.itens[1]).n, 2);
+});

@@ -92,17 +92,27 @@ const PASSOS = [
   { id: 'documentos', t: 'Documentos', d: 'Peças do processo em .docx, com pendências marcadas em amarelo.' }
 ];
 
-function render() { renderAutos(); renderPassos(); renderMain(); renderRail(); }
+const modo = () => ATIVO.modo === 'completo' ? 'completo' : 'simples';
+const pecasAtuais = () => montarPecas(R.proc, R.cfg, { simples: modo() === 'simples' });
+function render() {
+  document.body.classList.toggle('simples', modo() === 'simples');
+  renderAutos();
+  if (modo() === 'simples') { renderSimples(); return; }
+  renderPassos(); renderMain(); renderRail();
+}
+function rerender() { const y = window.scrollY; if (modo() === 'simples') renderSimples(); else { renderMain(); renderRail(); renderPassos(); } window.scrollTo(0, y); }
 
 function renderAutos() {
   const cfgs = Object.values(CFGS), procs = Object.values(PROCS).sort((a, b) => (b.atualizado || 0) - (a.atualizado || 0));
   const nomeProc = p => (p.numero ? 'Proc. ' + p.numero + ' — ' : '') + (p.objeto.resumo || 'Processo sem objeto').slice(0, 60) + (p.exemplo ? ' (exemplo)' : '');
+  const simples = modo() === 'simples';
   $('#autos').innerHTML = `
-    <label for="selCfg">Órgão</label>
-    <select id="selCfg">${cfgs.map(c => `<option value="${c.id}"${c.id === ATIVO.cfg ? ' selected' : ''}>${esc(c.nome)}</option>`).join('')}</select>
-    <label for="selProc">Processo</label>
+    <div class="modo" role="group" aria-label="Modo de uso"><button data-act="modo" data-m="simples" aria-pressed="${simples}">Secretaria</button><button data-act="modo" data-m="completo" aria-pressed="${!simples}">Licitações</button></div>
+    ${simples ? '' : `<label for="selCfg">Órgão</label>
+    <select id="selCfg">${cfgs.map(c => `<option value="${c.id}"${c.id === ATIVO.cfg ? ' selected' : ''}>${esc(c.nome)}</option>`).join('')}</select>`}
+    <label for="selProc">${simples ? 'Pedido' : 'Processo'}</label>
     <select id="selProc">${procs.map(p => `<option value="${p.id}"${p.id === ATIVO.proc ? ' selected' : ''}>${esc(nomeProc(p))}</option>`).join('')}</select>
-    <button class="btn small pri" data-act="novo-proc">Novo processo</button>
+    <button class="btn small pri" data-act="novo-proc">${simples ? 'Novo pedido' : 'Novo processo'}</button>
     <span class="sync${Store.modo === 'nuvem' ? ' on' : ''}" title="${Store.modo === 'nuvem' ? 'Salvo na sua conta, disponível em outros dispositivos' : 'Salvo só neste navegador. Use Exportar para guardar uma cópia.'}">${Store.modo === 'nuvem' ? 'salvo na conta' : 'salvo no navegador'}</span>`;
 }
 
@@ -422,7 +432,7 @@ function docHTML(d) {
   }).join('');
 }
 function abrirPrevia(i) {
-  const { pecas } = montarPecas(R.proc, R.cfg), d = pecas[i];
+  const { pecas } = pecasAtuais(), d = pecas[i];
   const m = $('#modal');
   m.className = 'modal'; m.hidden = false;
   m.innerHTML = `<div class="folha-wrap" role="dialog" aria-modal="true" aria-label="${esc(d.titulo)}"><div class="folha-bar"><b>${esc(d.titulo)}</b><span class="btns"><button class="btn small pri" data-act="baixar" data-i="${i}">Baixar .docx</button><button class="btn small" data-act="fechar">Fechar</button></span></div><div class="folha">${docHTML(d)}</div></div>`;
@@ -456,8 +466,8 @@ function exportar(obj, nome) { oferecer(nome, new Blob([JSON.stringify(obj, null
 function importar(txt) {
   let o; try { o = JSON.parse(txt); } catch (e) { toast('Arquivo inválido: não é JSON.'); return; }
   if (!o || o.formato !== 'licita-iac') { toast('Este arquivo não foi exportado pelo Licita IAC.'); return; }
-  if (o.cfg) { o.cfg.id = 'm_' + uid(); CFGS[o.cfg.id] = Object.assign(cfgPadrao(), o.cfg); ATIVO.cfg = o.cfg.id; Store.salvar('cfg', CFGS[o.cfg.id]); }
-  if (o.proc) { o.proc.id = 'p_' + uid(); o.proc.atualizado = Date.now(); PROCS[o.proc.id] = o.proc; ATIVO.proc = o.proc.id; Store.salvar('proc', o.proc); }
+  if (o.cfg && !Object.values(CFGS).some(c => c.nome === o.cfg.nome)) { o.cfg.id = 'm_' + uid(); CFGS[o.cfg.id] = Object.assign(cfgPadrao(), o.cfg); ATIVO.cfg = o.cfg.id; Store.salvar('cfg', CFGS[o.cfg.id]); }
+  if (o.proc) { normalizarProc(o.proc); o.proc.id = 'p_' + uid(); o.proc.atualizado = Date.now(); PROCS[o.proc.id] = o.proc; ATIVO.proc = o.proc.id; Store.salvar('proc', o.proc); }
   salvarTudo(); render(); toast('Importado.');
 }
 
@@ -481,14 +491,19 @@ function toast(t) { const el = $('#toast'); el.textContent = t; el.hidden = fals
 
 /* ---------- eventos ---------- */
 let railT;
-function agendarRail() { clearTimeout(railT); railT = setTimeout(() => { renderRail(); renderPassos(); }, 250); }
+function agendarRail() { if (modo() === 'simples') return; clearTimeout(railT); railT = setTimeout(() => { renderRail(); renderPassos(); }, 250); }
 function valorDe(el) {
   if (el.dataset.type === 'bool') return el.checked;
   if (el.dataset.type === 'num') return el.value === '' ? '' : num(el.value);
   return el.value;
 }
 document.addEventListener('input', e => {
-  const el = e.target; if (!el.dataset || !el.dataset.path || el.type === 'checkbox' || el.tagName === 'SELECT') return;
+  const el = e.target;
+  if (el.dataset && el.dataset.ov) {
+    const [o, it] = el.dataset.ov.split('|'); setValorOrc(R.proc, o, it, el.value === '' ? '' : num(el.value));
+    salvarTudo('proc'); return;
+  }
+  if (!el.dataset || !el.dataset.path || el.type === 'checkbox' || el.tagName === 'SELECT') return;
   setPath(el.dataset.path, valorDe(el)); salvarTudo(el.dataset.path); agendarRail();
 });
 document.addEventListener('change', e => {
@@ -497,6 +512,13 @@ document.addEventListener('change', e => {
   if (el.id === 'selProc') { ATIVO.proc = el.value; CONFIRMA = null; salvarTudo(); render(); return; }
   if (el.id === 'arqImport') { const f = el.files[0]; if (f) f.text().then(importar); el.value = ''; return; }
   if (el.id === 'arqBrasao') { const f = el.files[0]; if (f) carregarBrasao(f); el.value = ''; return; }
+  if (el.dataset.act === 's-tipo') { R.proc.objeto.natureza = el.value; salvarTudo('proc'); rerender(); return; }
+  if (el.dataset.act === 's-parc') {
+    const o = R.proc.objeto; o.parcelamento = el.value;
+    if (el.value === 'itens' && (!has(o.justParcelamento) || o.justParcelamento === '')) o.justParcelamento = SUGESTOES.parcelamento;
+    if (el.value === 'global' && o.justParcelamento === SUGESTOES.parcelamento) o.justParcelamento = '';
+    salvarTudo('proc'); rerender(); return;
+  }
   if (el.dataset.act === 'escolha') { R.proc.enquadramento.escolha = el.value; salvarTudo(); renderMain(); renderRail(); renderPassos(); return; }
   if (el.dataset.act === 'srp-hip') {
     const s = R.proc.situacao; s.srpHip = s.srpHip || [];
@@ -505,21 +527,31 @@ document.addEventListener('change', e => {
   }
   if (!el.dataset || !el.dataset.path) return;
   setPath(el.dataset.path, valorDe(el)); salvarTudo(el.dataset.path);
-  if (el.dataset.rr) { const y = window.scrollY; renderMain(); window.scrollTo(0, y); }
+  if (el.dataset.rr) rerender();
   if (el.dataset.path === 'cfg.nome') renderAutos();
-  renderRail(); renderPassos();
+  if (modo() !== 'simples') { renderRail(); renderPassos(); }
 });
 document.addEventListener('focusout', e => { const el = e.target; if (el.dataset && (el.dataset.path === 'proc.objeto.resumo' || el.dataset.path === 'proc.numero' || el.dataset.path === 'cfg.nome')) renderAutos(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#modal').hidden) fecharPrevia(); });
 $('#modal').addEventListener('click', e => { if (e.target.id === 'modal') fecharPrevia(); });
 
 document.addEventListener('click', e => {
-  const b = e.target.closest('[data-passo],[data-act]'); if (!b || b.tagName === 'INPUT') return;
+  const b = e.target.closest('[data-passo],[data-spasso],[data-act]'); if (!b || b.tagName === 'INPUT') return;
+  if (b.dataset.spasso) { SPASSO = b.dataset.spasso; renderSimples(); window.scrollTo({ top: 0 }); return; }
   if (b.dataset.passo) { PASSO = b.dataset.passo; CONFIRMA = null; renderPassos(); renderMain(); window.scrollTo({ top: 0 }); return; }
   const p = R.proc, i = +b.dataset.i, j = +b.dataset.j, act = b.dataset.act;
-  const rr = () => { salvarTudo(); const y = window.scrollY; renderMain(); renderRail(); renderPassos(); window.scrollTo(0, y); };
+  const rr = () => { salvarTudo(); rerender(); };
   switch (act) {
-    case 'novo-proc': { const n = procVazio(); PROCS[n.id] = n; ATIVO.proc = n.id; PASSO = 'demanda'; salvarTudo(); render(); toast('Processo criado.'); break; }
+    case 'modo': ATIVO.modo = b.dataset.m; CONFIRMA = null; salvarTudo(); render(); window.scrollTo({ top: 0 }); break;
+    case 'sugerir': setPath(b.dataset.path, SUGESTOES[b.dataset.k]); rr(); break;
+    case 's-add-forn': p.pedido.fornecedores.push({ id: uid(), nome: '', contato: '' }); rr(); break;
+    case 's-del-forn': p.pedido.fornecedores.splice(i, 1); rr(); break;
+    case 's-add-orc': p.orcs.push({ id: 'o_' + uid(), empresa: '', cnpj: '', data: hojeISO() }); rr(); break;
+    case 's-del-orc': p.orcs.splice(i, 1); syncOrcs(p); rr(); break;
+    case 's-copiar-forn': p.pedido.fornecedores.filter(f => has(f.nome)).forEach(f => p.orcs.push({ id: 'o_' + uid(), empresa: f.nome, cnpj: '', data: hojeISO() })); rr(); break;
+    case 's-ver': { const k = pecasAtuais().pecas.findIndex(d => d.id === b.dataset.id); if (k >= 0) abrirPrevia(k); break; }
+    case 's-baixar': { const d = pecasAtuais().pecas.find(x => x.id === b.dataset.id); if (d) baixarDocs([d], `${d.sigla}_${nomeArq(p.objeto.resumo || 'pedido').slice(0, 50)}.docx`); break; }
+    case 'novo-proc': { const n = procVazio(); PROCS[n.id] = n; ATIVO.proc = n.id; PASSO = 'demanda'; SPASSO = 's_quem'; salvarTudo(); render(); window.scrollTo({ top: 0 }); toast(modo() === 'simples' ? 'Pedido novo criado.' : 'Processo criado.'); break; }
     case 'dup-proc': { const n = JSON.parse(JSON.stringify(p)); n.id = 'p_' + uid(); n.numero = ''; n.exemplo = false; n.atualizado = Date.now(); PROCS[n.id] = n; ATIVO.proc = n.id; salvarTudo(); render(); toast('Processo duplicado. Informe o novo número.'); break; }
     case 'del-proc': CONFIRMA = 'proc'; renderMain(); break;
     case 'cancela': CONFIRMA = null; renderMain(); break;
@@ -543,8 +575,8 @@ document.addEventListener('click', e => {
     case 'reset-riscos': p.riscos = RISCOS_BASE.map(r => Object.assign({ id: uid() }, r)); rr(); break;
     case 'ver': abrirPrevia(i); break;
     case 'fechar': fecharPrevia(); break;
-    case 'baixar': { const { pecas } = montarPecas(p, R.cfg); const d = pecas[i]; baixarDocs([d], `${d.sigla}_${nomeArq(p.numero || 'sem-numero')}_${nomeArq(d.titulo)}.docx`); break; }
-    case 'baixar-tudo': { const { pecas } = montarPecas(p, R.cfg); baixarDocs(pecas, `Processo_${nomeArq(p.numero || 'sem-numero')}_${nomeArq(p.objeto.resumo).slice(0, 50)}.docx`); break; }
+    case 'baixar': { const { pecas } = pecasAtuais(); const d = pecas[i]; baixarDocs([d], `${d.sigla}_${nomeArq(p.numero || 'sem-numero')}_${nomeArq(d.titulo)}.docx`); break; }
+    case 'baixar-tudo': { const { pecas } = pecasAtuais(); baixarDocs(pecas, `Processo_${nomeArq(p.numero || 'sem-numero')}_${nomeArq(p.objeto.resumo).slice(0, 50)}.docx`); break; }
   }
 });
 
@@ -559,8 +591,9 @@ document.addEventListener('click', e => {
     const p = procExemplo(); PROCS[p.id] = p;
     ATIVO = { cfg: c.id, proc: p.id };
   }
+  Object.values(PROCS).forEach(normalizarProc);
   if (!CFGS[ATIVO.cfg]) ATIVO.cfg = Object.keys(CFGS)[0];
   if (!PROCS[ATIVO.proc]) { if (!Object.keys(PROCS).length) { const p = procVazio(); PROCS[p.id] = p; } ATIVO.proc = Object.keys(PROCS)[0]; }
   render();
-  Store.conectar().then(ok => { if (ok) { if (!CFGS[ATIVO.cfg]) ATIVO.cfg = Object.keys(CFGS)[0]; if (!PROCS[ATIVO.proc]) ATIVO.proc = Object.keys(PROCS)[0]; if (!PROCS[ATIVO.proc]) { const p = procVazio(); PROCS[p.id] = p; ATIVO.proc = p.id; Store.salvar('proc', p); } Store.gravarLocal(); render(); } });
+  Store.conectar().then(ok => { if (ok) { Object.values(PROCS).forEach(normalizarProc); if (!CFGS[ATIVO.cfg]) ATIVO.cfg = Object.keys(CFGS)[0]; if (!PROCS[ATIVO.proc]) ATIVO.proc = Object.keys(PROCS)[0]; if (!PROCS[ATIVO.proc]) { const p = procVazio(); PROCS[p.id] = p; ATIVO.proc = p.id; Store.salvar('proc', p); } Store.gravarLocal(); render(); } });
 })();
