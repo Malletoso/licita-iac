@@ -167,10 +167,11 @@ const SVIEWS = {
       <ul class="checks">${checks.map(([ok, t, passo]) => `<li class="${ok ? 'ok' : 'falta'}"><span class="ic" aria-hidden="true">${ok ? '✓' : '!'}</span><span>${t}</span>${ok ? '' : `<button class="btn small" data-spasso="${passo}">Corrigir</button>`}</li>`).join('')}</ul>
       ${faltam ? '<p class="hint">Você pode baixar os documentos mesmo assim. O que faltar sai destacado em amarelo.</p>' : ''}
       <p class="hint">Erros de digitação e acentuação conhecidos são corrigidos automaticamente nos documentos. O que é genérico, só você pode completar.</p></section>
+      ${AVISO_REVISAO}
       <section class="s-card"><h2>Documentos</h2>${docs}
       <div class="btns" style="padding-top:10px"><button class="btn big pri" data-act="baixar-tudo">Baixar todos em um arquivo (.docx)</button></div></section>
       <section class="s-card"><h2>Enviar para a Licitação</h2>
-      <ol class="passos-envio"><li>Baixe os documentos, imprima, confira e assine.</li><li>Junte os orçamentos assinados pelas empresas.</li><li>Baixe o arquivo do pedido e envie junto, por e-mail ou pendrive. A Licitação abre esse arquivo no app e continua o processo sem redigitar nada.</li></ol>
+      <ol class="passos-envio"><li>Baixe os documentos, leia cada um com atenção, corrija o que for preciso, imprima e só então assine.</li><li>Junte os orçamentos assinados pelas empresas.</li><li>Baixe o arquivo do pedido e envie junto, por e-mail ou pendrive. A Licitação abre esse arquivo no app e continua o processo sem redigitar nada.</li></ol>
       <div class="btns"><button class="btn big" data-act="exp-proc">Baixar arquivo do pedido (.json)</button></div></section>
       <section class="s-card"><div class="btns"><button class="btn" data-act="novo-proc">Começar um novo pedido</button><button class="btn" data-act="dup-proc">Copiar este pedido</button><button class="btn ghost" data-act="del-proc">Excluir este pedido</button></div></section>`;
   }

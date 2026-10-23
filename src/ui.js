@@ -87,6 +87,7 @@ function confirmaExclusao() {
   return `<div class="confirma-topo" role="alertdialog" aria-label="Confirmar exclusão"><span>Excluir <b>${esc(nome)}</b>? Não dá para desfazer. Se quiser guardar uma cópia, baixe antes o arquivo (.json) na última etapa.</span>
     <span class="btns"><button class="btn small perigo" data-act="del-proc-sim">Excluir de vez</button><button class="btn small" data-act="cancela">Cancelar</button></span></div>`;
 }
+const AVISO_REVISAO = `<div class="aviso-revisao" role="note"><b>Revisão humana obrigatória.</b> Os documentos são gerados automaticamente a partir do que foi preenchido e podem conter erros ou omissões. Leia, confira e ajuste cada documento antes de qualquer assinatura. A responsabilidade pelo conteúdo é de quem assina.</div>`;
 const bloco = (titulo, corpo, extra = '') => `<section class="bloco">${titulo ? `<h2>${titulo}${extra}</h2>` : ''}${corpo}</section>`;
 
 /* ---------- passos ---------- */
@@ -116,16 +117,17 @@ function rerender() { const y = window.scrollY; if (modo() === 'simples') render
 
 function renderAutos() {
   const cfgs = Object.values(CFGS), procs = Object.values(PROCS).sort((a, b) => (b.atualizado || 0) - (a.atualizado || 0));
-  const nomeProc = p => (p.numero ? 'Proc. ' + p.numero + ' — ' : '') + (p.objeto.resumo || 'Processo sem objeto').slice(0, 60) + (p.exemplo ? ' (exemplo)' : '');
   const simples = modo() === 'simples';
+  const quando = p => { const d = new Date(p.atualizado || Date.now()), z = n => String(n).padStart(2, '0'); return `${z(d.getDate())}/${z(d.getMonth() + 1)} ${z(d.getHours())}:${z(d.getMinutes())}`; };
+  const nomeProc = p => (p.numero ? 'Proc. ' + p.numero + ' — ' : '') + (p.objeto.resumo ? p.objeto.resumo.slice(0, 60) : `${simples ? 'Pedido' : 'Processo'} sem título · ${quando(p)}`) + (p.exemplo ? ' (exemplo)' : '');
   $('#autos').innerHTML = `
     <div class="modo" role="group" aria-label="Modo de uso"><button data-act="modo" data-m="simples" aria-pressed="${simples}">Secretaria</button><button data-act="modo" data-m="completo" aria-pressed="${!simples}">Licitações</button></div>
     ${simples ? '' : `<label for="selCfg">Órgão</label>
     <select id="selCfg">${cfgs.map(c => `<option value="${c.id}"${c.id === ATIVO.cfg ? ' selected' : ''}>${esc(c.nome)}</option>`).join('')}</select>`}
     <label for="selProc">${simples ? 'Pedido' : 'Processo'}</label>
-    <select id="selProc">${procs.map(p => `<option value="${p.id}"${p.id === ATIVO.proc ? ' selected' : ''}>${esc(nomeProc(p))}</option>`).join('')}</select>
+    <span class="sel-proc"><select id="selProc">${procs.map(p => `<option value="${p.id}"${p.id === ATIVO.proc ? ' selected' : ''}>${esc(nomeProc(p))}</option>`).join('')}</select>
+    <button class="btn-lixo" data-act="del-proc" title="Excluir ${simples ? 'este pedido' : 'este processo'}" aria-label="Excluir ${simples ? 'este pedido' : 'este processo'}"><svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path d="M4 7h16M10 11v6M14 11v6M5 7l1 12a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2l1-12M9 7V4h6v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></button></span>
     <button class="btn small pri" data-act="novo-proc">${simples ? 'Novo pedido' : 'Novo processo'}</button>
-    <button class="btn small" data-act="del-proc" title="Excluir ${simples ? 'o pedido' : 'o processo'} aberto">Excluir</button>
     <span class="sync${Store.modo === 'nuvem' ? ' on' : ''}" title="${Store.modo === 'nuvem' ? 'Salvo na sua conta, disponível em outros dispositivos' : 'Salvo só neste navegador. Use Exportar para guardar uma cópia.'}">${Store.modo === 'nuvem' ? 'salvo na conta' : 'salvo no navegador'}</span>`;
 }
 
@@ -402,6 +404,7 @@ const VIEWS = {
       <div class="tt"><b>${esc(d.titulo)}</b><span>${esc(d.fund)} · ${d.pendencias ? d.pendencias + ' pendência' + (d.pendencias > 1 ? 's' : '') : 'sem pendências'}</span></div>
       <div class="btns"><button class="btn small" data-act="ver" data-i="${i}">Visualizar</button><button class="btn small pri" data-act="baixar" data-i="${i}">Baixar .docx</button></div></div>`).join('');
     return (a.escolhida ? '' : `<div class="banner"><span><b>Sem enquadramento possível.</b> Corrija a pesquisa de preços ou os dados do objeto.</span></div>`)
+      + AVISO_REVISAO
       + bloco(`Peças do processo <span class="pill ${total ? 'alerta' : 'ok'}">${total ? total + ' campos a preencher' : 'completo'}</span>`, `${linhas}
       <div class="btns" style="padding-top:8px;border-top:1px solid var(--line)"><button class="btn pri" data-act="baixar-tudo">Baixar processo completo (.docx)</button><button class="btn" data-act="exp-proc">Exportar dados do processo (.json)</button><button class="btn" data-act="imp">Importar</button></div>
       <p class="hint">Campos em amarelo nos documentos são pendências: o app não inventa nome, CNPJ, data ou justificativa. O parecer jurídico (art. 53) não é gerado: é ato da assessoria jurídica.</p>`)
@@ -461,7 +464,7 @@ function abrirPrevia(i) {
   const m = $('#modal');
   m.className = 'modal'; m.hidden = false;
   const marca = R.cfg.marcaDagua !== false && brasaoURI(R.cfg) ? ` style="--marca:url('${brasaoURI(R.cfg)}')"` : '';
-  m.innerHTML = `<div class="folha-wrap" role="dialog" aria-modal="true" aria-label="${esc(d.titulo)}"><div class="folha-bar"><b>${esc(d.titulo)}</b><span class="btns"><button class="btn small pri" data-act="baixar" data-i="${i}">Baixar .docx</button><button class="btn small" data-act="fechar">Fechar</button></span></div><div class="folha${marca ? ' com-marca' : ''}"${marca}><div class="folha-in">${docHTML(d)}</div></div></div>`;
+  m.innerHTML = `<div class="folha-wrap" role="dialog" aria-modal="true" aria-label="${esc(d.titulo)}"><div class="folha-bar"><b>${esc(d.titulo)}</b><span class="btns"><button class="btn small pri" data-act="baixar" data-i="${i}">Baixar .docx</button><button class="btn small" data-act="fechar">Fechar</button></span></div><p class="folha-aviso">Revise este documento antes de assinar: ele foi gerado automaticamente.</p><div class="folha${marca ? ' com-marca' : ''}"${marca}><div class="folha-in">${docHTML(d)}</div></div></div>`;
   m.querySelector('[data-act="fechar"]').focus();
 }
 function fecharPrevia() { const m = $('#modal'); m.hidden = true; m.innerHTML = ''; }
@@ -471,7 +474,7 @@ async function oferecer(nome, blob) {
   let dl = null;
   try { dl = window.claude && window.claude.use ? await window.claude.use('downloads') : null; } catch (e) { dl = null; }
   if (dl) {
-    try { await dl.save({ filename: nome, data: blob }); toast('Arquivo salvo: ' + nome); }
+    try { await dl.save({ filename: nome, data: blob }); toast(/\.docx$/.test(nome) ? 'Arquivo salvo. Revise o documento antes de assinar.' : 'Arquivo salvo: ' + nome); }
     catch (e) { toast(e && e.code === 'declined' ? 'Download cancelado.' : e && e.code === 'rate_limited' ? 'Já há um download aguardando confirmação.' : 'Não foi possível salvar o arquivo aqui.'); }
     return;
   }
