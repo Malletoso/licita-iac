@@ -65,11 +65,41 @@ const ALINEAS_74III = {
   h: 'controles de qualidade e tecnológico, análises, testes e ensaios de campo e laboratoriais, instrumentação e monitoramento de parâmetros específicos de obras e do meio ambiente e demais serviços de engenharia que se enquadrem nesta alínea'
 };
 
+/* ---------- Imagens (logo, brasão de Iacanga, marca d'água) ---------- */
+const IMG = (typeof ASSETS !== 'undefined') ? ASSETS
+  : (typeof require === 'function' ? (() => { try { return require('./assets.js'); } catch (e) { return {}; } })() : {});
+const brasaoURI = cfg => cfg.brasao === 'iacanga' ? IMG.brasaoIacanga : (cfg.brasao || '');
+const brasaoProp = cfg => cfg.brasao === 'iacanga' ? (IMG.brasaoProporcao || 0.845) : (num(cfg.brasaoProp) || 0.85);
+
+const UF_NOME = { AC: 'do Acre', AL: 'de Alagoas', AP: 'do Amapá', AM: 'do Amazonas', BA: 'da Bahia', CE: 'do Ceará', DF: 'Distrito Federal', ES: 'do Espírito Santo', GO: 'de Goiás', MA: 'do Maranhão', MT: 'de Mato Grosso', MS: 'de Mato Grosso do Sul', MG: 'de Minas Gerais', PA: 'do Pará', PB: 'da Paraíba', PR: 'do Paraná', PE: 'de Pernambuco', PI: 'do Piauí', RJ: 'do Rio de Janeiro', RN: 'do Rio Grande do Norte', RS: 'do Rio Grande do Sul', RO: 'de Rondônia', RR: 'de Roraima', SC: 'de Santa Catarina', SP: 'de São Paulo', SE: 'de Sergipe', TO: 'do Tocantins' };
+/* Cabeçalho no padrão da Prefeitura: título sublinhado e linhas de contato */
+function linhasCabecalho(cfg) {
+  const uf = (cfg.uf || '').toUpperCase();
+  const estado = uf === 'DF' ? 'Distrito Federal' : UF_NOME[uf] ? 'Estado ' + UF_NOME[uf] : '';
+  return {
+    titulo: cfg.nome || '',
+    linhas: [
+      { t: estado },
+      { t: has(cfg.site) ? 'Site: ' + cfg.site : '' },
+      { t: has(cfg.email) ? 'e-mail: ' + cfg.email : '' },
+      { t: cfg.endereco || '', b: true },
+      { t: [has(cfg.fone) ? 'Fone: ' + cfg.fone : '', has(cfg.cnpj) ? 'CNPJ: ' + cfg.cnpj : ''].filter(Boolean).join(' – '), b: true }
+    ].filter(l => has(l.t))
+  };
+}
+
+const DADOS_IACANGA = {
+  nome: 'Prefeitura do Município de Iacanga', ente: 'Município de Iacanga', cnpj: '46.137.477/0001-14',
+  endereco: 'Av. das Acácias, 149 – Jardim das Flores – 17180-418 – Iacanga – SP', fone: '(14) 3294-9400',
+  email: 'pmiacanga@iacanga.sp.gov.br', site: 'www.iacanga.sp.gov.br', brasao: 'iacanga'
+};
+
 /* ---------- Configuração do município ---------- */
 function cfgPadrao() {
   return {
-    id: 'm_' + uid(), nome: 'Prefeitura Municipal de Iacanga', ente: 'Município de Iacanga', cnpj: '', endereco: '',
-    cidade: 'Iacanga', uf: 'SP', comarca: '', ate20mil: true, site: '', diario: '', brasao: '', plataforma: '',
+    id: 'm_' + uid(), nome: DADOS_IACANGA.nome, ente: DADOS_IACANGA.ente, cnpj: DADOS_IACANGA.cnpj, endereco: DADOS_IACANGA.endereco,
+    fone: DADOS_IACANGA.fone, email: DADOS_IACANGA.email, marcaDagua: true, brasaoProp: '',
+    cidade: 'Iacanga', uf: 'SP', comarca: '', ate20mil: true, site: DADOS_IACANGA.site, diario: '', brasao: 'iacanga', plataforma: '',
     regulamento: 'federal', regulamentoTexto: '', dobro: false, desvioAlerta: 30,
     valores: { ano: 2026, norma: 'Decreto nº 12.807, de 29 de dezembro de 2025', d75i: 130984.20, d75ii: 65492.11, d75p7: 10478.74, verbal: 13098.41, tecnico: 392952.63, grandeVulto: 261968421.04, meEpp: 80000 },
     autoridade: { nome: '', cargo: 'Prefeito Municipal' },
@@ -78,6 +108,18 @@ function cfgPadrao() {
     juridico: { nome: '', cargo: 'Assessoria Jurídica' },
     contabilidade: { nome: '', cargo: 'Responsável pela Contabilidade' }
   };
+}
+
+/* Completa perfis salvos por versões anteriores */
+function normalizarCfg(c) {
+  const base = cfgPadrao();
+  Object.keys(base).forEach(k => { if (c[k] === undefined) c[k] = (k === 'id' ? c.id : (typeof base[k] === 'object' ? base[k] : '')); });
+  if (c.marcaDagua === '') c.marcaDagua = true;
+  if (String(c.cidade || '').trim().toLowerCase() === 'iacanga') {
+    ['cnpj', 'endereco', 'fone', 'email', 'site', 'brasao'].forEach(k => { if (!has(c[k])) c[k] = DADOS_IACANGA[k]; });
+    if (c.nome === 'Prefeitura Municipal de Iacanga') c.nome = DADOS_IACANGA.nome;
+  }
+  return c;
 }
 
 const RISCOS_BASE = [
@@ -537,8 +579,8 @@ function docPrecos(p, cfg, a) {
     const s = estat(it);
     blocks.push({ t: 'h', text: `Item ${i + 1} — ${ph(it.desc, 'descrição do item')}` });
     if ((it.cot || []).length) {
-      blocks.push({ t: 'table', small: true, cols: [{ h: 'Fonte', w: 4 }, { h: 'Parâmetro', w: 1.6 }, { h: 'Data', w: 1.7 }, { h: 'Valor unit.', w: 2 }, { h: 'Situação', w: 4 }],
-        rows: it.cot.map(c => [ph(c.fonte, 'fonte'), 'art. 23, §1º, ' + (c.param || '?'), fmtData(c.data) || '⟦data⟧', fmtBRL(num(c.valor)), c.excluir ? 'Desconsiderado. ' + ph(c.just, 'justificativa da exclusão') : 'Válido'])
+      blocks.push({ t: 'table', small: true, cols: [{ h: 'Fonte', w: 4 }, { h: 'Art. 23, §1º', w: 1.7 }, { h: 'Data', w: 1.8 }, { h: 'Valor unit.', w: 2 }, { h: 'Situação', w: 4 }],
+        rows: it.cot.map(c => [ph(c.fonte, 'fonte'), 'inciso ' + (c.param || '?'), fmtData(c.data) || '⟦data⟧', fmtBRL(num(c.valor)), c.excluir ? 'Desconsiderado. ' + ph(c.just, 'justificativa da exclusão') : 'Válido'])
       });
       blocks.push({ t: 'p', text: s.n ? `Preços válidos: ${s.n}. Menor: ${fmtBRL(s.menor)}. Média: ${fmtBRL(s.media)}. Mediana: ${fmtBRL(s.mediana)}. Coeficiente de variação: ${fmtNum(s.cv * 100, 1)}%. **Preço de referência: ${fmtBRL(precoUnit(it, m))}**, para ${fmtNum(it.qtd, 0)} ${it.unid || 'un'}, totalizando ${fmtBRL(totalItem(it, m))}.` : `Sem preços válidos. Preço de referência informado: ${fmtBRL(num(it.precoRef))}. ⟦justificar a origem do preço⟧` });
       if (s.n && s.n < 3) blocks.push({ t: 'p', text: 'Menos de três preços válidos. ⟦justificativa e aprovação da autoridade competente⟧' });
@@ -878,8 +920,9 @@ function b64ToBytes(dataUrl) {
   const u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return u;
 }
 
-function paraDocx(D, pecas, p, cfg) {
-  const { Document, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, ShadingType, Header, Footer, PageNumber, ImageRun, PageOrientation, VerticalAlign, PageBreak } = D;
+function paraDocx(D, pecas, p, cfg, opts = {}) {
+  const { Document, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, ShadingType, Header, Footer, PageNumber, ImageRun, PageOrientation, VerticalAlign, PageBreak,
+    UnderlineType, HorizontalPositionRelativeFrom, HorizontalPositionAlign, VerticalPositionRelativeFrom, VerticalPositionAlign, TextWrappingType } = D;
   const FONT = 'Arial';
   const runs = (s, o = {}) => textoParaSegmentos(s).map(g => new TextRun({ text: g.t, bold: !!(g.b || o.bold), italics: !!o.italics, size: o.size || 22, font: FONT, highlight: g.ph ? 'yellow' : undefined, allCaps: !!o.caps }));
   const P = (s, o = {}) => new Paragraph({ children: runs(s, o), alignment: o.align === 'right' ? AlignmentType.RIGHT : o.align === 'center' ? AlignmentType.CENTER : o.align === 'left' ? AlignmentType.LEFT : AlignmentType.JUSTIFIED, spacing: { before: o.before || 0, after: o.after == null ? 120 : o.after, line: 288 }, indent: o.indent ? { left: o.indent, hanging: o.hanging || 0 } : undefined, keepNext: !!o.keepNext });
@@ -925,27 +968,48 @@ function paraDocx(D, pecas, p, cfg) {
     return out;
   }
 
-  const cabecalho = () => {
+  const AZUL = '1F3864';
+  const semBorda = { style: BorderStyle.NONE, size: 0, color: 'FFFFFF' };
+  const bordasNenhuma = { top: semBorda, bottom: semBorda, left: semBorda, right: semBorda, insideHorizontal: semBorda, insideVertical: semBorda };
+  const tipoImg = uri => /^data:image\/png/.test(uri) ? 'png' : 'jpg';
+  const brasao = brasaoURI(cfg), prop = brasaoProp(cfg);
+  const marca = cfg.marcaDagua === false ? '' : (opts.marca || (cfg.brasao === 'iacanga' ? IMG.marcaIacanga : ''));
+
+  const cabecalho = larg => {
+    const H = linhasCabecalho(cfg);
+    const textos = [
+      new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 60 }, children: [new TextRun({ text: H.titulo, bold: true, size: 34, font: FONT, color: AZUL, underline: { type: UnderlineType.SINGLE, color: AZUL } })] }),
+      ...H.linhas.map(l => new Paragraph({ alignment: AlignmentType.CENTER, spacing: { after: 0, line: 228 }, children: [new TextRun({ text: l.t, bold: !!l.b, size: 17, font: FONT })] }))
+    ];
     const ch = [];
-    if (cfg.brasao && /^data:image\/(png|jpe?g)/.test(cfg.brasao)) {
-      const tipo = /png/.test(cfg.brasao.slice(0, 20)) ? 'png' : 'jpg';
-      ch.push(new Paragraph({ alignment: AlignmentType.CENTER, children: [new ImageRun({ type: tipo, data: b64ToBytes(cfg.brasao), transformation: { width: 52, height: 52 } })] }));
+    if (/^data:image\/(png|jpe?g)/.test(brasao)) {
+      const hpx = 86, wpx = Math.round(hpx * prop), wImg = 1500;
+      const cel = (w, children, al) => new TableCell({ width: { size: w, type: WidthType.DXA }, borders: bordasNenhuma, verticalAlign: al, margins: { top: 0, bottom: 0, left: 0, right: 0 }, children });
+      ch.push(new Table({ width: { size: larg, type: WidthType.DXA }, columnWidths: [wImg, larg - wImg - wImg, wImg], borders: bordasNenhuma, rows: [new TableRow({ children: [
+        cel(wImg, [new Paragraph({ children: [new ImageRun({ type: tipoImg(brasao), data: b64ToBytes(brasao), transformation: { width: wpx, height: hpx } })] })], VerticalAlign.CENTER),
+        cel(larg - wImg - wImg, textos, VerticalAlign.CENTER),
+        cel(wImg, [new Paragraph({ children: [] })], VerticalAlign.CENTER)
+      ] })] }));
+    } else ch.push(...textos);
+    if (marca) {
+      const wm = 400, hm = Math.round(wm / prop);
+      ch.push(new Paragraph({ children: [new ImageRun({ type: tipoImg(marca), data: b64ToBytes(marca), transformation: { width: wm, height: hm },
+        floating: { horizontalPosition: { relative: HorizontalPositionRelativeFrom.PAGE, align: HorizontalPositionAlign.CENTER }, verticalPosition: { relative: VerticalPositionRelativeFrom.PAGE, align: VerticalPositionAlign.CENTER },
+          behindDocument: true, allowOverlap: true, wrap: { type: TextWrappingType.NONE } } })] }));
     }
-    ch.push(P(cfg.nome.toUpperCase(), { bold: true, align: 'center', size: 22, after: 0 }));
-    const linha2 = [p.demanda.secretaria, cfg.cnpj ? 'CNPJ ' + cfg.cnpj : '', cfg.endereco].filter(has).join(' • ');
-    if (linha2) ch.push(P(linha2, { align: 'center', size: 16, after: 120 }));
+    ch.push(new Paragraph({ spacing: { after: 120 }, children: [] }));
     return new Header({ children: ch });
   };
   const rodape = () => new Footer({ children: [new Paragraph({ alignment: AlignmentType.RIGHT, children: [new TextRun({ text: `Processo nº ${p.numero || '____'} — fls. `, size: 16, font: FONT }), new TextRun({ children: [PageNumber.CURRENT], size: 16, font: FONT })] })] });
 
   const sections = pecas.map(doc => ({
     properties: { page: doc.landscape
-      ? { size: { width: 11906, height: 16838, orientation: PageOrientation.LANDSCAPE }, margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 } }
-      : { size: { width: 11906, height: 16838 }, margin: { top: 1418, right: 1134, bottom: 1134, left: 1701 } } },
-    headers: { default: cabecalho() }, footers: { default: rodape() },
+      ? { size: { width: 11906, height: 16838, orientation: PageOrientation.LANDSCAPE }, margin: { top: 1134, right: 1134, bottom: 1134, left: 1134, header: 567, footer: 567 } }
+      : { size: { width: 11906, height: 16838 }, margin: { top: 1418, right: 1134, bottom: 1134, left: 1701, header: 567, footer: 567 } } },
+    headers: { default: cabecalho(doc.landscape ? 16838 - 1134 * 2 : 11906 - 1701 - 1134) }, footers: { default: rodape() },
     children: corpo(doc)
   }));
   return new Document({ creator: 'Licita IAC', title: pecas.length === 1 ? pecas[0].titulo : 'Processo ' + (p.numero || ''), styles: { default: { document: { run: { font: FONT, size: 22 } } } }, sections });
 }
 
-if (typeof module !== 'undefined') module.exports = { cfgPadrao, procExemplo, procVazio, normalizarProc, syncOrcs, setValorOrc, valorOrc, analisar, montarPecas, paraDocx, estat, estimativa, NAT, precoUnit, totalItem };
+if (typeof module !== 'undefined') module.exports = { cfgPadrao, normalizarCfg, linhasCabecalho, brasaoURI, procExemplo, procVazio, normalizarProc, syncOrcs, setValorOrc, valorOrc, analisar, montarPecas, paraDocx, estat, estimativa, NAT, precoUnit, totalItem };

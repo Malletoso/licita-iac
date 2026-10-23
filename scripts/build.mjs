@@ -11,10 +11,11 @@ const ler = p => readFileSync(join(raiz, p), 'utf8');
 const DOCX_VERSAO = JSON.parse(ler('node_modules/docx/package.json')).version;
 
 const shell = ler('src/shell.html');
+const assets = ler('src/assets.js');
 const core = ler('src/core.js');
 const ui = ler('src/ui.js');
 const simples = ler('src/simples.js');
-const app = `${core}\n${simples}\n${ui}`;
+const app = `${assets}\n${core}\n${simples}\n${ui}`;
 
 // ---------- artefato (claude.ai): página única, docx pela CDN ----------
 mkdirSync(join(raiz, 'dist'), { recursive: true });
@@ -43,9 +44,9 @@ writeFileSync(join(web, 'index.html'), `<!doctype html>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Gerador de processos de licitação e contratação direta pela Lei nº 14.133/2021.">
-<meta name="theme-color" content="#0d6466">
+<meta name="theme-color" content="#1f4570">
 <link rel="manifest" href="manifest.webmanifest">
-<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="icon" type="image/png" href="icons/favicon-64.png">
 <link rel="apple-touch-icon" href="icons/icon-192.png">
 <style>${reset}</style>
 </head>
@@ -66,8 +67,8 @@ writeFileSync(join(web, 'manifest.webmanifest'), JSON.stringify({
   start_url: './',
   scope: './',
   display: 'standalone',
-  background_color: '#f4f7f7',
-  theme_color: '#0d6466',
+  background_color: '#f3f5f9',
+  theme_color: '#1f4570',
   icons: [
     { src: 'icons/icon-192.png', sizes: '192x192', type: 'image/png' },
     { src: 'icons/icon-512.png', sizes: '512x512', type: 'image/png' },

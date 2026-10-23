@@ -95,3 +95,27 @@ test('orçamentos por empresa alimentam a pesquisa e somem quando a empresa é r
   C.syncOrcs(p);
   assert.equal(C.estat(p.itens[1]).n, 2);
 });
+
+test('peças levam o cabeçalho da prefeitura e o brasão ao fundo', async () => {
+  const JSZip = require('jszip');
+  const cfg = C.cfgPadrao(), p = clone(C.procExemplo());
+  const { pecas } = C.montarPecas(p, cfg, { simples: true });
+  const zip = await JSZip.loadAsync(await docx.Packer.toBuffer(C.paraDocx(docx, pecas, p, cfg)));
+  const cabs = Object.keys(zip.files).filter(f => /word\/header\d+\.xml$/.test(f));
+  assert.equal(cabs.length, pecas.length, 'um cabeçalho por peça');
+  const xml = await zip.file(cabs[0]).async('string');
+  assert.ok(xml.includes('Prefeitura do Município de Iacanga'));
+  assert.ok(xml.includes('CNPJ: 46.137.477/0001-14'));
+  assert.ok(xml.includes('behindDoc="1"'), 'marca d\'água atrás do texto');
+  const semMarca = Object.assign(C.cfgPadrao(), { marcaDagua: false });
+  const zip2 = await JSZip.loadAsync(await docx.Packer.toBuffer(C.paraDocx(docx, pecas, p, semMarca)));
+  assert.ok(!(await zip2.file(cabs[0]).async('string')).includes('behindDoc="1"'));
+});
+
+test('perfil antigo de Iacanga recebe os dados do cabeçalho', () => {
+  const antigo = { id: 'm_x', nome: 'Prefeitura Municipal de Iacanga', cidade: 'Iacanga', uf: 'SP', cnpj: '', brasao: '', valores: C.cfgPadrao().valores };
+  const c = C.normalizarCfg(antigo);
+  assert.equal(c.cnpj, '46.137.477/0001-14');
+  assert.equal(c.brasao, 'iacanga');
+  assert.equal(C.linhasCabecalho(c).linhas[0].t, 'Estado de São Paulo');
+});

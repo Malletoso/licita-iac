@@ -144,14 +144,17 @@ const VIEWS = {
     const c = R.cfg, V = c.valores;
     return bloco('Perfil do órgão', `<div class="grid2">
       ${campo('Nome do órgão', 'cfg.nome', { req: true })}${campo('Ente', 'cfg.ente', { hint: 'Como aparece no preâmbulo: "Município de …"' })}
-      ${campo('CNPJ', 'cfg.cnpj', { req: true })}${campo('Endereço da sede', 'cfg.endereco')}
+      ${campo('CNPJ', 'cfg.cnpj', { req: true })}${campo('Endereço completo', 'cfg.endereco', { hint: 'Como aparece no cabeçalho: rua, número, bairro, CEP, cidade, UF.' })}
+      ${campo('Telefone', 'cfg.fone')}${campo('E-mail', 'cfg.email')}
       ${campo('Cidade', 'cfg.cidade')}${campo('UF', 'cfg.uf', { rr: 1, hint: 'Em SP, o app inclui o Termo de Ciência e de Notificação do TCESP.' })}
       ${campo('Comarca (foro do contrato)', 'cfg.comarca', { art: 'art. 92, §1º' })}${campo('Sítio eletrônico oficial', 'cfg.site')}
       ${campo('Plataforma de licitação eletrônica', 'cfg.plataforma', { ph: 'BEC/SP, BLL, Licitanet…' })}${campo('Diário oficial', 'cfg.diario')}
       </div>
       ${campo('Município com até 20 mil habitantes', 'cfg.ate20mil', { type: 'check', art: 'art. 176', hint: 'Prazo de transição até 01/04/2027 para licitação eletrônica obrigatória, agentes e divulgação em sítio oficial.' })}
       ${campo('Consórcio público, autarquia ou fundação qualificada como agência executiva', 'cfg.dobro', { type: 'check', art: 'art. 75, §2º', rr: 1, hint: 'Dobra os limites de dispensa por valor.' })}
-      <div class="btns"><button class="btn" data-act="brasao">${c.brasao ? 'Trocar brasão' : 'Enviar brasão (PNG ou JPG)'}</button>${c.brasao ? `<img src="${c.brasao}" alt="Brasão" style="height:40px">` : ''}${c.brasao ? '<button class="btn ghost small" data-act="tira-brasao">Remover</button>' : ''}</div>`,
+      <div class="btns"><button class="btn" data-act="brasao">${c.brasao ? 'Trocar brasão' : 'Enviar brasão (PNG ou JPG)'}</button>${c.brasao ? `<img src="${brasaoURI(c)}" alt="Brasão" style="height:48px">` : ''}${c.brasao ? '<button class="btn ghost small" data-act="tira-brasao">Remover</button>' : ''}</div>
+      ${campo('Brasão esmaecido ao fundo das páginas', 'cfg.marcaDagua', { type: 'check', hint: 'Marca d\'água com 10% de opacidade, centralizada em todas as páginas dos documentos.' })}
+      <div class="field"><span class="lbl-prev">Prévia do cabeçalho dos documentos</span><div class="cab-prev">${cabHTML(c)}</div></div>`,
       `<span class="btns" style="margin-left:auto"><button class="btn small" data-act="novo-cfg">Novo órgão</button><button class="btn small" data-act="exp-cfg">Exportar perfil</button><button class="btn small" data-act="imp">Importar</button></span>`)
     + bloco('Autoridades e agentes', `<div class="grid2">
       ${campo('Autoridade competente', 'cfg.autoridade.nome', { req: true })}${campo('Cargo', 'cfg.autoridade.cargo')}
@@ -413,9 +416,13 @@ function renderRail() {
 
 /* ---------- pré-visualização ---------- */
 function segHTML(s) { return textoParaSegmentos(s).map(g => g.ph ? `<mark>${esc(g.t)}</mark>` : g.b ? `<strong>${esc(g.t)}</strong>` : esc(g.t)).join(''); }
+function cabHTML(c) {
+  const H = linhasCabecalho(c), b = brasaoURI(c);
+  return `<div class="cab">${b ? `<img src="${b}" alt="Brasão">` : ''}<div class="cab-t"><b>${esc(H.titulo)}</b>${H.linhas.map(l => `<span${l.b ? ' class="n"' : ''}>${esc(l.t)}</span>`).join('')}</div>${b ? '<i></i>' : ''}</div>`;
+}
 function docHTML(d) {
-  const c = R.cfg, p = R.proc;
-  const cab = `<div class="cab">${c.brasao ? `<img src="${c.brasao}" alt="" style="height:44px"><br>` : ''}<b>${esc(c.nome.toUpperCase())}</b><small>${esc([p.demanda.secretaria, c.cnpj ? 'CNPJ ' + c.cnpj : '', c.endereco].filter(has).join(' • '))}</small></div>`;
+  const c = R.cfg;
+  const cab = cabHTML(c);
   const tab = (cols, rows, foot, sem) => `<div class="tw"><table>${sem ? '' : `<tr>${cols.map(x => `<th>${segHTML(x.h)}</th>`).join('')}</tr>`}${rows.map(r => `<tr>${r.map((x, i) => sem && i === 0 ? `<th>${segHTML(x)}</th>` : `<td>${segHTML(x)}</td>`).join('')}</tr>`).join('')}${foot ? `<tr>${foot.map(x => `<td>${segHTML(x)}</td>`).join('')}</tr>` : ''}</table></div>`;
   return cab + d.blocks.map(b => {
     switch (b.t) {
@@ -435,7 +442,8 @@ function abrirPrevia(i) {
   const { pecas } = pecasAtuais(), d = pecas[i];
   const m = $('#modal');
   m.className = 'modal'; m.hidden = false;
-  m.innerHTML = `<div class="folha-wrap" role="dialog" aria-modal="true" aria-label="${esc(d.titulo)}"><div class="folha-bar"><b>${esc(d.titulo)}</b><span class="btns"><button class="btn small pri" data-act="baixar" data-i="${i}">Baixar .docx</button><button class="btn small" data-act="fechar">Fechar</button></span></div><div class="folha">${docHTML(d)}</div></div>`;
+  const marca = R.cfg.marcaDagua !== false && brasaoURI(R.cfg) ? ` style="--marca:url('${brasaoURI(R.cfg)}')"` : '';
+  m.innerHTML = `<div class="folha-wrap" role="dialog" aria-modal="true" aria-label="${esc(d.titulo)}"><div class="folha-bar"><b>${esc(d.titulo)}</b><span class="btns"><button class="btn small pri" data-act="baixar" data-i="${i}">Baixar .docx</button><button class="btn small" data-act="fechar">Fechar</button></span></div><div class="folha${marca ? ' com-marca' : ''}"${marca}><div class="folha-in">${docHTML(d)}</div></div></div>`;
   m.querySelector('[data-act="fechar"]').focus();
 }
 function fecharPrevia() { const m = $('#modal'); m.hidden = true; m.innerHTML = ''; }
@@ -453,11 +461,26 @@ async function oferecer(nome, blob) {
   setTimeout(() => URL.revokeObjectURL(a.href), 4000);
 }
 const nomeArq = s => String(s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^\w.-]+/g, '-').replace(/-+/g, '-').replace(/^-|-$/g, '');
+const cacheMarca = {};
+function marcaDe(uri) {
+  if (cacheMarca[uri]) return Promise.resolve(cacheMarca[uri]);
+  return new Promise(ok => {
+    const img = new Image();
+    img.onload = () => {
+      const h = 480, w = Math.round(img.width * h / img.height), cv = document.createElement('canvas');
+      cv.width = w; cv.height = h; const g = cv.getContext('2d'); g.globalAlpha = 0.10; g.drawImage(img, 0, 0, w, h);
+      ok(cacheMarca[uri] = cv.toDataURL('image/png'));
+    };
+    img.onerror = () => ok('');
+    img.src = uri;
+  });
+}
 async function baixarDocs(lista, nome) {
   if (typeof docx === 'undefined') { toast('A biblioteca de geração de Word não carregou. Verifique a conexão e recarregue a página.'); return; }
   toast('Gerando documento…');
   try {
-    const blob = await docx.Packer.toBlob(paraDocx(docx, lista, R.proc, R.cfg));
+    const c = R.cfg, marca = c.marcaDagua !== false && c.brasao && c.brasao !== 'iacanga' ? await marcaDe(c.brasao) : '';
+    const blob = await docx.Packer.toBlob(paraDocx(docx, lista, R.proc, c, { marca }));
     await oferecer(nome, blob);
   } catch (e) { console.error(e); toast('Falha ao gerar o .docx: ' + (e.message || e)); }
 }
@@ -466,7 +489,7 @@ function exportar(obj, nome) { oferecer(nome, new Blob([JSON.stringify(obj, null
 function importar(txt) {
   let o; try { o = JSON.parse(txt); } catch (e) { toast('Arquivo inválido: não é JSON.'); return; }
   if (!o || o.formato !== 'licita-iac') { toast('Este arquivo não foi exportado pelo Licita IAC.'); return; }
-  if (o.cfg && !Object.values(CFGS).some(c => c.nome === o.cfg.nome)) { o.cfg.id = 'm_' + uid(); CFGS[o.cfg.id] = Object.assign(cfgPadrao(), o.cfg); ATIVO.cfg = o.cfg.id; Store.salvar('cfg', CFGS[o.cfg.id]); }
+  if (o.cfg && !Object.values(CFGS).some(c => c.nome === o.cfg.nome)) { o.cfg.id = 'm_' + uid(); CFGS[o.cfg.id] = normalizarCfg(o.cfg); ATIVO.cfg = o.cfg.id; Store.salvar('cfg', CFGS[o.cfg.id]); }
   if (o.proc) { normalizarProc(o.proc); o.proc.id = 'p_' + uid(); o.proc.atualizado = Date.now(); PROCS[o.proc.id] = o.proc; ATIVO.proc = o.proc.id; Store.salvar('proc', o.proc); }
   salvarTudo(); render(); toast('Importado.');
 }
@@ -476,10 +499,11 @@ function carregarBrasao(file) {
   fr.onload = () => {
     const img = new Image();
     img.onload = () => {
-      const k = Math.min(1, 180 / Math.max(img.width, img.height));
+      const k = Math.min(1, 220 / img.height);
       const cv = document.createElement('canvas'); cv.width = Math.round(img.width * k); cv.height = Math.round(img.height * k);
       cv.getContext('2d').drawImage(img, 0, 0, cv.width, cv.height);
-      R.cfg.brasao = cv.toDataURL('image/png'); salvarTudo(); renderMain(); toast('Brasão atualizado.');
+      R.cfg.brasao = cv.toDataURL('image/png'); R.cfg.brasaoProp = Math.round(img.width / img.height * 1000) / 1000;
+      salvarTudo(); rerender(); toast('Brasão atualizado.');
     };
     img.src = fr.result;
   };
@@ -560,7 +584,7 @@ document.addEventListener('click', e => {
       if (!Object.keys(PROCS).length) { const n = procVazio(); PROCS[n.id] = n; }
       ATIVO.proc = Object.keys(PROCS)[0]; PASSO = 'demanda'; salvarTudo(); render(); toast('Processo excluído.'); break;
     }
-    case 'novo-cfg': { const c = cfgPadrao(); c.nome = 'Novo órgão'; c.ente = ''; c.cidade = ''; CFGS[c.id] = c; ATIVO.cfg = c.id; salvarTudo(); render(); break; }
+    case 'novo-cfg': { const c = cfgPadrao(); c.nome = 'Novo órgão'; ['ente', 'cidade', 'cnpj', 'endereco', 'fone', 'email', 'site', 'brasao'].forEach(k => c[k] = ''); CFGS[c.id] = c; ATIVO.cfg = c.id; salvarTudo(); render(); break; }
     case 'exp-cfg': exportar({ formato: 'licita-iac', versao: 1, cfg: R.cfg }, 'orgao-' + nomeArq(R.cfg.nome) + '.json'); break;
     case 'exp-proc': exportar({ formato: 'licita-iac', versao: 1, proc: p, cfg: R.cfg }, 'processo-' + nomeArq(p.numero || p.objeto.resumo || 'sem-numero').slice(0, 60) + '.json'); break;
     case 'imp': $('#arqImport').click(); break;
@@ -582,10 +606,11 @@ document.addEventListener('click', e => {
 
 /* ---------- início ---------- */
 (function iniciar() {
+  if (IMG.logo) $('#logoApp').src = IMG.logo; else $('#logoApp').hidden = true;
   const L = Store.lerLocal();
   if (L && L.cfgs && Object.keys(L.cfgs).length) {
     CFGS = L.cfgs; PROCS = L.procs || {}; ATIVO = L.ativo || {};
-    Object.values(CFGS).forEach(c => { const base = cfgPadrao(); Object.keys(base).forEach(k => { if (c[k] === undefined) c[k] = base[k]; }); });
+    Object.values(CFGS).forEach(normalizarCfg);
   } else {
     const c = cfgPadrao(); CFGS[c.id] = c;
     const p = procExemplo(); PROCS[p.id] = p;
@@ -595,5 +620,5 @@ document.addEventListener('click', e => {
   if (!CFGS[ATIVO.cfg]) ATIVO.cfg = Object.keys(CFGS)[0];
   if (!PROCS[ATIVO.proc]) { if (!Object.keys(PROCS).length) { const p = procVazio(); PROCS[p.id] = p; } ATIVO.proc = Object.keys(PROCS)[0]; }
   render();
-  Store.conectar().then(ok => { if (ok) { Object.values(PROCS).forEach(normalizarProc); if (!CFGS[ATIVO.cfg]) ATIVO.cfg = Object.keys(CFGS)[0]; if (!PROCS[ATIVO.proc]) ATIVO.proc = Object.keys(PROCS)[0]; if (!PROCS[ATIVO.proc]) { const p = procVazio(); PROCS[p.id] = p; ATIVO.proc = p.id; Store.salvar('proc', p); } Store.gravarLocal(); render(); } });
+  Store.conectar().then(ok => { if (ok) { Object.values(PROCS).forEach(normalizarProc); Object.values(CFGS).forEach(normalizarCfg); if (!CFGS[ATIVO.cfg]) ATIVO.cfg = Object.keys(CFGS)[0]; if (!PROCS[ATIVO.proc]) ATIVO.proc = Object.keys(PROCS)[0]; if (!PROCS[ATIVO.proc]) { const p = procVazio(); PROCS[p.id] = p; ATIVO.proc = p.id; Store.salvar('proc', p); } Store.gravarLocal(); render(); } });
 })();

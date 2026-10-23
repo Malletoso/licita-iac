@@ -31,6 +31,12 @@ Os dados ficam salvos **no navegador do computador em uso**. Limpar os dados do 
 | Orçamento | dotação |
 | Documentos | peças em .docx, individualmente ou o processo completo |
 
+## Identidade visual
+
+Todas as peças saem com o cabeçalho da Prefeitura (brasão, nome sublinhado, endereço, telefone e CNPJ) e o brasão esmaecido a 10% ao fundo de cada página. Os dados vêm do perfil do órgão, na etapa Município; outro município pode enviar o próprio brasão e desligar a marca d'água.
+
+As imagens originais ficam em `static/originais/`. Depois de trocá-las, rode `python3 scripts/make_assets.py` (requer Pillow) para regerar ícones, `static/brand/` e `src/assets.js`.
+
 ## Peças geradas
 
 DFD, ETP, mapa de riscos, termo de referência, relatório de pesquisa de preços, reserva e disponibilidade orçamentária, justificativa de dispensa ou inexigibilidade, aviso de contratação direta (art. 75, §3º), minuta de edital, minuta de contrato ou de ata de registro de preços, designação de gestor e fiscal, termo de ciência e notificação do TCESP (UF = SP), encaminhamento à assessoria jurídica e autorização da autoridade competente com extrato.
@@ -62,9 +68,11 @@ src/core.js       motor de regras, textos das peças e conversão para .docx (se
 src/ui.js         interface do modo Licitações e partes comuns
 src/simples.js    passo a passo do modo Secretaria
 src/shell.html    marcação e estilos
+src/assets.js     logo, brasão e marca d'água em data URI (gerado)
 scripts/build.mjs monta o site (PWA) e o arquivo único
 test/             testes do motor (node:test)
-static/icons/     ícones do app
+static/icons/     ícones do app (gerados)
+static/originais/ imagens originais: logo, brasão, cabeçalho de referência
 ```
 
 Cada push na branch `main` roda os testes e publica a pasta `web/` no GitHub Pages (`.github/workflows/pages.yml`).
