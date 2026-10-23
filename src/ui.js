@@ -163,6 +163,7 @@ const VIEWS = {
       ${campo('Telefone', 'cfg.fone')}${campo('E-mail', 'cfg.email')}
       ${campo('Cidade', 'cfg.cidade')}${campo('UF', 'cfg.uf', { rr: 1, hint: 'Em SP, o app inclui o Termo de Ciência e de Notificação do TCESP.' })}
       ${campo('Comarca (foro do contrato)', 'cfg.comarca', { art: 'art. 92, §1º' })}${campo('Sítio eletrônico oficial', 'cfg.site')}
+      ${campo('Decreto de gestão e fiscalização de contratos', 'cfg.decretoGestao', { ph: 'Decreto Municipal nº …/…', hint: 'Citado no Termo de Referência e no Termo de Responsabilidade. Em Iacanga: Decreto Municipal nº 1.528/2025.' })}
       ${campo('Nome da unidade de licitações', 'cfg.nomeLicitacao', { hint: 'Aparece no modo Secretaria e nos documentos: "número a ser atribuído pela …".' })}
       ${campo('Plataforma de licitação eletrônica', 'cfg.plataforma', { ph: 'BEC/SP, BLL, Licitanet…' })}${campo('Diário oficial', 'cfg.diario')}
       </div>
@@ -198,12 +199,14 @@ const VIEWS = {
       ${campo('Número do processo administrativo', 'proc.numero', { ph: '123/2026', hint: `Atribuído pela ${esc(setorLic(R.cfg))} ao receber o pedido.` })}${campo('Data', 'proc.demanda.data', { type: 'date' })}
       ${campo('Secretaria', 'proc.demanda.secretaria')}${campo('Unidade requisitante', 'proc.demanda.unidade', { req: true })}
       ${campo('Responsável pela demanda', 'proc.demanda.responsavel', { req: true })}${campo('Cargo', 'proc.demanda.cargo')}
+      ${campo('Nº da solicitação (sistema de compras)', 'proc.demanda.solicitacao')}<span></span>
       ${campo('Prioridade', 'proc.demanda.prioridade', { type: 'select', options: [['alta', 'Alta'], ['media', 'Média'], ['baixa', 'Baixa']] })}${campo('Data pretendida para início', 'proc.demanda.dataPretendida', { type: 'date' })}</div>`)
       + bloco('Justificativa', `
       ${campo('Problema a resolver', 'proc.demanda.necessidade', { rev: 'necessidade', type: 'textarea', rows: 5, req: true, art: 'art. 18, §1º, I', hint: 'Descreva o problema com fatos e números, sob a ótica do interesse público. "Para atender às necessidades da Secretaria" não é justificativa.' })}
       ${campo('Consequências da não contratação', 'proc.demanda.consequencias', { rev: 'consequencias', type: 'textarea', rows: 3 })}
       <div class="grid2">${campo('Plano de Contratações Anual', 'proc.demanda.pca', { type: 'select', rr: 1, art: 'art. 12, VII', options: [['nao_elaborado', 'O Município não elaborou PCA'], ['sim', 'Prevista no PCA'], ['nao', 'Não prevista no PCA']] })}
-      ${R.proc.demanda.pca === 'sim' ? campo('Referência no PCA', 'proc.demanda.pcaRef') : ''}</div>`);
+      ${R.proc.demanda.pca === 'sim' ? campo('Referência no PCA', 'proc.demanda.pcaRef') : ''}</div>
+      ${R.proc.demanda.pca === 'nao' ? campo('Justificativa da inclusão fora do PCA', 'proc.demanda.pcaJust', { rev: 'justificativa', type: 'textarea', rows: 3, req: true }) : ''}`);
   },
 
   objeto() {
@@ -211,18 +214,23 @@ const VIEWS = {
     const nat = Object.entries(NAT).map(([k, v]) => [k, v.l]);
     const itens = p.itens.map((it, i) => `<div class="item"><div class="item-h"><span class="idx">Item ${i + 1}</span>${p.itens.length > 1 ? `<button class="btn ghost small" data-act="del-item" data-i="${i}" style="margin-left:auto">Remover item</button>` : ''}</div>
       ${campo('Especificação', `proc.itens.${i}.desc`, { type: 'textarea', rows: 2, req: true, rev: 'item', hint: 'Sem marca, salvo justificativa técnica. Indique o que permite aferir qualidade.' })}
-      <div class="grid3">${p.objeto.parcelamento === 'lotes' ? campo('Lote', `proc.itens.${i}.lote`, { type: 'number', rr: 1 }) : ''}${campo('Unidade', `proc.itens.${i}.unid`)}${campo('Quantidade', `proc.itens.${i}.qtd`, { type: 'number' })}${campo('CATMAT/CATSER', `proc.itens.${i}.catmat`)}</div></div>`).join('');
+      <div class="grid3">${p.objeto.parcelamento === 'lotes' ? campo('Lote', `proc.itens.${i}.lote`, { type: 'number', rr: 1 }) : ''}${campo('Unidade', `proc.itens.${i}.unid`)}${campo('Quantidade', `proc.itens.${i}.qtd`, { type: 'number' })}${campo('CATMAT/CATSER', `proc.itens.${i}.catmat`)}</div>
+      ${campo('Local de entrega ou execução do item (opcional)', `proc.itens.${i}.local`)}</div>`).join('');
     return bloco('Natureza e escopo', `<div class="grid2">
       ${campo('Natureza do objeto', 'proc.objeto.natureza', { type: 'select', rr: 1, options: nat, hint: 'Define modalidade, limite de dispensa e cabimento do pregão.' })}
       ${campo('Objeto em uma frase', 'proc.objeto.resumo', { req: true, rev: 'resumo' })}</div>
       ${campo('Compra com entrega imediata e sem obrigações futuras', 'proc.objeto.entregaImediata', { type: 'check', rr: 1, art: 'art. 95, II', hint: 'Entrega em até 30 dias da ordem de fornecimento (art. 6º, X).' })}
       ${campo('Serviço ou fornecimento contínuo', 'proc.objeto.continuo', { type: 'check', rr: 1, art: 'art. 106' })}
-      ${p.objeto.continuo ? `<div class="sub">${campo('Vigência em meses', 'proc.objeto.vigenciaMeses', { type: 'number' })}</div>` : ''}`)
+      ${p.objeto.continuo ? `<div class="sub">${campo('Vigência em meses', 'proc.objeto.vigenciaMeses', { type: 'number' })}</div>` : ''}
+      ${p.objeto.natureza !== 'compra' ? `<div class="grid2">${campo('Regime de execução', 'proc.objeto.regime', { type: 'select', art: 'art. 46', options: opcoesRegime() })}<span></span></div>` : ''}`)
       + bloco('Itens', `${itens}<div class="btns"><button class="btn" data-act="add-item">Adicionar item</button></div>
       ${campo('Memória de cálculo das quantidades', 'proc.objeto.memoriaQtd', { rev: 'memoria', type: 'textarea', req: true, art: 'art. 18, §1º, IV', hint: 'Consumo histórico, levantamento de campo, população atendida. Quantidade sem memória de cálculo é apontamento certo.' })}`)
       + bloco('Estudo técnico preliminar', `
       ${campo('Requisitos da contratação', 'proc.objeto.requisitos', { rev: 'texto', type: 'textarea', art: 'III' })}
+      ${campo('Especificações técnicas detalhadas', 'proc.objeto.especificacoes', { rev: 'texto', type: 'textarea', rows: 6, hint: 'Um tópico por parágrafo ("Título: texto"); linhas com hífen viram marcadores. Cada parágrafo vira um item numerado.' })}
       ${campo('Levantamento de mercado e alternativas', 'proc.objeto.alternativas', { rev: 'texto', type: 'textarea', art: 'V', hint: 'Quais soluções existem e por que esta foi escolhida.' })}
+      <div class="grid2">${campo('Vantagens da solução', 'proc.objeto.vantagens', { rev: 'lista', type: 'textarea', rows: 3, hint: 'Uma por linha, com hífen.' })}${campo('Desvantagens ou riscos', 'proc.objeto.desvantagens', { rev: 'lista', type: 'textarea', rows: 3 })}</div>
+      ${campo('Justificativa da escolha da solução', 'proc.objeto.justEscolha', { rev: 'texto', type: 'textarea', rows: 2 })}
       ${campo('Descrição da solução como um todo', 'proc.objeto.solucao', { rev: 'texto', type: 'textarea', art: 'VII' })}
       <div class="grid2">${campo('Julgamento', 'proc.objeto.parcelamento', { type: 'select', rr: 1, options: [['itens', 'Por item — um vencedor por item'], ['lotes', 'Por lote — um vencedor por lote'], ['global', 'Global — um vencedor para tudo']], art: 'VIII' })}<span></span></div>
       ${EXPLICA_LOTES}${p.objeto.parcelamento === 'lotes' ? `<p class="hint">${esc(composicaoLotes(p))} Informe o número do lote em cada item, acima.</p>` : ''}
@@ -343,7 +351,8 @@ const VIEWS = {
       ${campo('Participação exclusiva ME/EPP', 'proc.disputa.exclusivaME', { type: 'select', rr: 1, options: [['auto', 'Automática nos itens até o limite'], ['nao', 'Não aplicar (art. 49 da LC 123)']] })}</div>
       ${p.disputa.exclusivaME === 'nao' ? campo('Justificativa para não aplicar', 'proc.disputa.justNaoExclusiva', { type: 'textarea', req: true }) : ''}
       ${campo('Admitir consórcio', 'proc.disputa.consorcio', { type: 'check', art: 'art. 15' })}
-      ${campo('Prever vistoria facultativa', 'proc.disputa.visita', { type: 'check', art: 'art. 63, §2º' })}
+      <div class="grid2">${campo('Vistoria', 'proc.disputa.vistoria', { type: 'select', rr: 1, art: 'art. 63, §2º', options: [['nao', 'Não prevista'], ['facultativa', 'Facultativa (ou declaração)'], ['obrigatoria', 'Obrigatória (justificar)']] })}
+      ${(p.disputa.vistoria || 'nao') !== 'nao' ? campo('Onde agendar', 'proc.disputa.vistoriaLocal') : '<span></span>'}</div>
       ${p.situacao.srp ? campo('Admitir adesão à ata por não participantes', 'proc.disputa.adesao', { type: 'check', art: 'art. 86, §2º' }) : ''}`)
       + bloco('Habilitação específica', `
       ${campo('Qualificação técnica', 'proc.disputa.habTecnica', { type: 'textarea', art: 'art. 67', hint: 'Só o indispensável. Atestados limitados às parcelas de maior relevância (art. 67, §1º).' })}
@@ -354,21 +363,24 @@ const VIEWS = {
     const a = analisar(R.proc, R.cfg), p = R.proc;
     return bloco('Execução', `<div class="grid2">
       ${campo('Prazo de entrega ou execução', 'proc.execucao.prazo', { req: true })}${campo('Local', 'proc.execucao.local', { req: true })}
+      ${campo('Prazo para início', 'proc.execucao.prazoInicio', { ph: '15 dias após a Ordem de Serviço' })}${campo('Prazo para refazer o recusado (dias)', 'proc.execucao.prazoRejeicao', { type: 'number' })}
       ${campo('Vigência do contrato', 'proc.execucao.vigenciaTexto', { ph: '12 meses', hint: p.objeto.continuo ? 'Serviço contínuo: até 5 anos, prorrogável até 10 (arts. 106 e 107).' : '' })}
       ${campo('Prazo de pagamento (dias)', 'proc.execucao.pagamentoDias', { type: 'number' })}</div>
+      ${campo('Metodologia de execução', 'proc.execucao.metodologia', { rev: 'lista', type: 'textarea', rows: 4, hint: 'Um passo por linha, com hífen.' })}
       ${campo('Recebimento provisório e definitivo', 'proc.execucao.recebimento', { type: 'textarea', art: 'art. 140' })}
+      ${campo('Critério de medição', 'proc.execucao.medicao', { rev: 'texto', type: 'textarea', rows: 2, hint: 'Vazio: o app usa a unidade de cada item (metro, m², unidade…).' })}
       <div class="grid2">${campo('Garantia do produto ou serviço', 'proc.execucao.garantia', { type: 'textarea', rows: 2 })}${campo('Assistência técnica', 'proc.execucao.assistencia', { type: 'textarea', rows: 2, hint: 'Se houver, a compra deixa de ser de entrega imediata para o art. 95, II.' })}</div>`)
       + bloco('Instrumento e garantias', `<div class="grid2">
       ${campo('Instrumento contratual', 'proc.execucao.instrumento', { type: 'select', rr: 1, art: 'art. 95', options: [['auto', 'Automático'], ['contrato', 'Termo de contrato'], ['substitutivo', 'Instrumento substitutivo (empenho, ordem)']], hint: esc(a.instrumento.t) })}
       ${campo('Índice de reajuste', 'proc.execucao.reajuste', { art: 'art. 25, §7º' })}
       ${campo('Garantia contratual (% do valor)', 'proc.execucao.garantiaContratual', { type: 'number', art: 'art. 96', hint: 'Até 5%, ou 10% com justificativa de complexidade e risco.' })}
       ${campo('Multa máxima (%)', 'proc.execucao.multa', { type: 'number', art: 'art. 156, §3º' })}</div>
+      ${num(p.execucao.garantiaContratual) > 0 ? '' : campo('Motivo para não exigir garantia contratual', 'proc.execucao.garantiaJust', { ph: 'considerando o baixo risco e o pagamento após a execução' })}
+      <div class="grid2">${campo('Subcontratação', 'proc.objeto.subcontratacao', { type: 'select', rr: 1, art: 'art. 122', options: [['nao', 'Não admitida'], ['parcial', 'Admitida em parte']] })}${p.objeto.subcontratacao === 'parcial' ? campo('Parcelas e limite', 'proc.objeto.subcontratacaoJust') : '<span></span>'}</div>
       ${campo('Obrigações do contratado (deixe vazio para o texto padrão)', 'proc.execucao.obrigContratada', { type: 'textarea', rows: 2 })}
       ${campo('Obrigações do contratante (deixe vazio para o texto padrão)', 'proc.execucao.obrigContratante', { type: 'textarea', rows: 2 })}`)
-      + bloco('Gestão e fiscalização', `<div class="grid2">
-      ${campo('Gestor do contrato', 'proc.execucao.gestor', { req: true, art: 'art. 117' })}${campo('Cargo do gestor', 'proc.execucao.gestorCargo')}
-      ${campo('Fiscal do contrato', 'proc.execucao.fiscal', { req: true })}${campo('Cargo do fiscal', 'proc.execucao.fiscalCargo')}</div>
-      <p class="hint">Gestor e fiscal devem ser, preferencialmente, servidores efetivos, sem vínculo com o contratado (art. 7º).</p>`);
+      + bloco('Gestão e fiscalização', `${blocoFiscais(false)}
+      <p class="hint">Gestor e fiscais devem ser, preferencialmente, servidores efetivos, sem vínculo com o contratado (art. 7º). O CPF sai mascarado nos documentos.</p>`);
   },
 
   riscos() {
@@ -394,6 +406,7 @@ const VIEWS = {
       ${campo('Órgão', 'proc.orcamento.orgao')}${campo('Unidade orçamentária', 'proc.orcamento.unidade')}
       ${campo('Funcional programática', 'proc.orcamento.funcional')}${campo('Natureza da despesa', 'proc.orcamento.natureza')}
       ${campo('Fonte de recurso', 'proc.orcamento.fonte')}${campo('Ficha', 'proc.orcamento.ficha')}</div>
+      <h2 class="papel">Dotações por órgão (cotas-partes)</h2>${listaDotacoes()}
       <p class="hint">A compatibilidade orçamentária deve estar demonstrada antes da autorização (art. 72, IV, e art. 150). No registro de preços, a dotação é indicada na formalização de cada contratação, conforme o regulamento.</p>`);
   },
 
@@ -447,14 +460,18 @@ function docHTML(d) {
   const tab = (cols, rows, foot, sem) => `<div class="tw"><table>${sem ? '' : `<tr>${cols.map(x => `<th>${segHTML(x.h)}</th>`).join('')}</tr>`}${rows.map(r => `<tr>${r.map((x, i) => sem && i === 0 ? `<th>${segHTML(x)}</th>` : `<td>${segHTML(x)}</td>`).join('')}</tr>`).join('')}${foot ? `<tr>${foot.map(x => `<td>${segHTML(x)}</td>`).join('')}</tr>` : ''}</table></div>`;
   return cab + d.blocks.map(b => {
     switch (b.t) {
-      case 'title': return `<h4>${segHTML(b.text)}</h4>${b.sub ? `<div class="subt">${segHTML(b.sub)}</div>` : ''}`;
+      case 'title': return `<h4${b.under ? ' class="u"' : ''}>${segHTML(b.text)}</h4>${b.sub ? `<div class="subt">${segHTML(b.sub)}</div>` : ''}`;
+      case 'sec': return `<div class="sec">${segHTML(b.text)}</div>`;
+      case 'sub': return `<p class="sb">${segHTML(b.text)}</p>`;
+      case 'cl': return `<p${b.nivel === 2 ? ' class="n2"' : ''}>${esc(b.num)} ${segHTML(b.text)}</p>`;
+      case 'bul': return `<p class="bul${b.nivel === 2 ? ' n2' : ''}">${segHTML(b.text)}</p>`;
       case 'h': return `<h5>${segHTML(b.text)}</h5>`;
       case 'p': return `<p${b.align === 'right' ? ' class="r"' : ''}>${segHTML(b.text)}</p>`;
       case 'li': return `<p class="li">${segHTML(b.text)}</p>`;
       case 'note': return `<p class="nt">${segHTML(b.text)}</p>`;
       case 'kv': return tab([], b.rows, null, true);
       case 'table': return tab(b.cols, b.rows, b.foot);
-      case 'sig': return `<div class="sig"><span></span><b>${segHTML(b.nome)}</b><br>${segHTML(b.cargo)}</div>`;
+      case 'sig': return `<div class="sig"><span></span><b${b.caps ? ' style="text-transform:uppercase"' : ''}>${segHTML(b.nome)}</b>${b.cargo ? '<br>' + segHTML(b.cargo) : ''}</div>`;
       default: return '';
     }
   }).join('');
@@ -597,7 +614,9 @@ document.addEventListener('click', e => {
     case 'rev-ia-fechar': delete IA[b.dataset.path]; atualizarRev(b.dataset.path); break;
     case 'rev-ia-usar': { const x = IA[b.dataset.path]; delete IA[b.dataset.path]; if (x && x.texto) { trocarTexto(b.dataset.path, x.texto); toast('Texto atualizado.'); } break; }
     case 'modo': ATIVO.modo = b.dataset.m; CONFIRMA = null; salvarTudo(); render(); window.scrollTo({ top: 0 }); break;
-    case 'sugerir': setPath(b.dataset.path, SUGESTOES[b.dataset.k]); rr(); break;
+    case 'sugerir': { const v = SUGESTOES[b.dataset.k]; setPath(b.dataset.path, typeof v === 'function' ? v(R.proc) : v); rr(); break; }
+    case 'add-dot': p.orcamento.dotacoes = p.orcamento.dotacoes || []; p.orcamento.dotacoes.push({ id: uid(), orgao: '', ficha: '' }); rr(); break;
+    case 'del-dot': p.orcamento.dotacoes.splice(i, 1); rr(); break;
     case 's-add-forn': p.pedido.fornecedores.push({ id: uid(), nome: '', contato: '' }); rr(); break;
     case 's-del-forn': p.pedido.fornecedores.splice(i, 1); rr(); break;
     case 's-add-orc': p.orcs.push({ id: 'o_' + uid(), empresa: '', cnpj: '', data: hojeISO() }); rr(); break;

@@ -78,7 +78,7 @@ test('modo Secretaria gera só as peças pedidas pela Licitação', async () => 
   const { pecas } = C.montarPecas(p, cfg, { simples: true });
   assert.deepEqual(pecas.map(d => d.id), ['etp', 'tr', 'precos', 'pedido', 'designacao']);
   const tr = pecas.find(d => d.id === 'tr');
-  assert.ok(tr.blocks.some(b => /definida pela Secretaria de Licitação/.test(b.text || '')), 'TR não decide o enquadramento');
+  assert.ok(tr.blocks.some(b => /confirmado pela Secretaria de Licitação/.test(b.text || '')), 'dispensa por valor fica sujeita à confirmação da Licitação');
   const pedido = pecas.find(d => d.id === 'pedido');
   assert.equal(pedido.blocks.filter(b => b.t === 'pb').length, 2, 'uma página por fornecedor');
   const buf = await docx.Packer.toBuffer(C.paraDocx(docx, pecas, p, cfg));
@@ -169,7 +169,51 @@ test('peças saem com as correções aplicadas e sem pendência de número no mo
   const { pecas } = C.montarPecas(p, cfg, { simples: true });
   const etp = pecas.find(d => d.id === 'etp');
   assert.ok(etp.blocks.some(b => /Falta água nas escolas/.test(b.text || '')));
-  assert.ok(JSON.stringify(etp).includes('a ser atribuído pela Secretaria de Licitação'));
-  assert.ok(!JSON.stringify(etp).includes('⟦nº do processo⟧'));
+  assert.ok(!JSON.stringify(pecas).includes('⟦nº do processo⟧'), 'nenhuma peça cobra o número do processo no modo Secretaria');
   assert.equal(p.demanda.necessidade, 'falta agua nas escolas ha meses', 'o texto do usuário não é alterado');
+});
+
+
+test('valor por extenso', () => {
+  assert.equal(C.reaisExtenso(340624.88), 'Trezentos e quarenta mil, seiscentos e vinte e quatro reais e oitenta e oito centavos');
+  assert.equal(C.reaisExtenso(1500), 'Mil e quinhentos reais');
+  assert.equal(C.reaisExtenso(2001.01), 'Dois mil e um reais e um centavo');
+  assert.equal(C.reaisExtenso(1000000), 'Um milhão de reais');
+  assert.equal(C.reaisExtenso(100), 'Cem reais');
+});
+
+test('CPF sai mascarado nas peças', () => {
+  assert.equal(C.mascaraCPF('464.358.458-08'), '464.XXX.XXX-08');
+  assert.equal(C.mascaraCPF('46435845808'), '464.XXX.XXX-08');
+});
+
+test('ETP, TR e Termo seguem a estrutura do modelo de Iacanga', () => {
+  const cfg = C.cfgPadrao(), p = clone(C.procExemplo());
+  Object.assign(p.execucao, { gestor: 'Fulano', gestorCargo: 'Secretário', gestorCpf: '29005735805', fiscal: 'Beltrano', fiscalCargo: 'Diretor', fiscalCpf: '46435845808', fiscalAdm: 'Ciclano', fiscalAdmCargo: 'Agente Administrativo', fiscalAdmCpf: '44416274831' });
+  const { pecas } = C.montarPecas(p, cfg, { simples: true });
+  const secs = id => pecas.find(d => d.id === id).blocks.filter(b => b.t === 'sec').map(b => b.text);
+  assert.equal(secs('etp').length, 15);
+  assert.equal(secs('etp')[0], '01 – DA UNIDADE REQUISITANTE');
+  assert.equal(secs('etp')[14], '15 – POSICIONAMENTO CONCLUSIVO E ESCOLHA DA SOLUÇÃO');
+  assert.equal(secs('tr').length, 10);
+  assert.equal(secs('tr')[5], '06 – GESTÃO E FISCALIZAÇÃO');
+  const txt = JSON.stringify(pecas);
+  assert.ok(txt.includes('464.XXX.XXX-08') && !txt.includes('464.358.458-08'), 'CPF mascarado');
+  const termo = pecas.find(d => d.id === 'designacao');
+  assert.ok(termo.blocks.some(b => b.text === '3 – DO FISCAL ADMINISTRATIVO'));
+  assert.ok(JSON.stringify(termo).includes('Decreto Municipal nº 1.528/2025'));
+  const etp = pecas.find(d => d.id === 'etp');
+  assert.ok(etp.blocks.some(b => b.t === 'cl' && b.num === '3.1.'), 'necessidade numerada');
+  assert.ok(JSON.stringify(etp).includes('(Nove mil, quatrocentos e vinte reais)'), 'valor por extenso');
+});
+
+test('texto livre vira cláusulas e marcadores', () => {
+  const ps = C.paragrafos('Requisitos Legais: o cercamento é obrigatório.\n\nSegundo parágrafo:\n- marcador um\n- marcador dois');
+  assert.equal(ps.length, 2);
+  assert.deepEqual(ps[1].bul, ['marcador um', 'marcador dois']);
+});
+
+test('serviço de engenharia sem tabela oficial gera alerta do art. 23, §2º', () => {
+  const cfg = C.cfgPadrao(), p = clone(C.procExemplo()); p.objeto.natureza = 'eng_comum';
+  assert.ok(C.analisar(p, cfg).alertas.some(a => /SINAPI/.test(a.t)));
 });

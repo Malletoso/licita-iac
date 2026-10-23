@@ -47,6 +47,10 @@ Todas as peças saem com o cabeçalho da Prefeitura (brasão, nome sublinhado, e
 
 As imagens originais ficam em `static/originais/`. Depois de trocá-las, rode `python3 scripts/make_assets.py` (requer Pillow) para regerar ícones, `static/brand/` e `src/assets.js`.
 
+## Padrão das peças
+
+ETP, Termo de Referência e Termo de Responsabilidade seguem o modelo adotado pela Prefeitura de Iacanga: seções numeradas em caixa ("01 – DA UNIDADE REQUISITANTE"), cláusulas 1.1, 1.2 e 1.2.1, Arial 12, valor por extenso, ciclo de vida da solução, vantagens e desvantagens, requisitos (habilitação, subcontratação, garantias, vistoria), gestor, fiscal técnico, fiscal administrativo e fiscal setorial com CPF mascarado (LGPD), e dotações por órgão. O texto livre digitado pelo usuário vira cláusulas numeradas: cada parágrafo é uma cláusula, "Título: texto" ganha o título em negrito e linhas com hífen viram marcadores. As atribuições de gestor e fiscais citam o decreto municipal configurado na etapa Município (em Iacanga, Decreto Municipal nº 1.528/2025).
+
 ## Peças geradas
 
 DFD, ETP, mapa de riscos, termo de referência, relatório de pesquisa de preços, reserva e disponibilidade orçamentária, justificativa de dispensa ou inexigibilidade, aviso de contratação direta (art. 75, §3º), minuta de edital, minuta de contrato ou de ata de registro de preços, designação de gestor e fiscal, termo de ciência e notificação do TCESP (UF = SP), encaminhamento à assessoria jurídica e autorização da autoridade competente com extrato.

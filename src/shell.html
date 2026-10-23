@@ -182,6 +182,16 @@ aside.rail { position: sticky; top: calc(env(safe-area-inset-top, 0px) + 72px); 
 .folha .tw { overflow-x: auto }
 .folha .sig { text-align: center; margin: 34px 0 10px }
 .folha .sig span { display: block; border-top: 1px solid #333; width: 280px; max-width: 100%; margin: 0 auto 4px }
+.folha h4.u { text-decoration: underline }
+.folha .sec { background: #d9d9d9; border: 1px solid #404040; font-weight: 700; font-size: 13px; padding: 3px 6px; margin: 14px 0 8px }
+.folha .sb { font-weight: 700; margin-top: 10px }
+.folha p.n2 { padding-left: 28px }
+.folha p.bul { padding-left: 36px; position: relative; margin-bottom: 4px }
+.folha p.bul::before { content: "●"; position: absolute; left: 18px; font-size: 9px; top: 3px }
+.folha p.bul.n2 { padding-left: 64px }
+.folha p.bul.n2::before { left: 46px }
+h2.papel { font: 600 15px/1.3 var(--f-body); margin: 0 }
+h2.papel small { font-weight: 400; color: var(--muted) }
 .folha mark { background: #fff0a3; color: #3b3000; padding: 0 2px }
 
 .toast { position: fixed; z-index: 50; left: 50%; transform: translateX(-50%); bottom: calc(env(safe-area-inset-bottom, 0px) + 20px); background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 8px; font-size: 14px; box-shadow: var(--shadow); max-width: calc(100% - 32px) }

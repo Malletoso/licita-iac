@@ -92,7 +92,8 @@ const ORIENTA = {
     rec: 'Apresente a razão técnica ou econômica concreta (economia de escala, sistema único e integrado, logística).',
     ex: 'Os itens do lote são entregues no mesmo local, pelo mesmo tipo de fornecedor; separá-los multiplicaria o custo de frete.' },
   conclusao: { min: 40, ponto: true, rec: 'Afirme que a contratação é viável e adequada à necessidade descrita.', ex: 'A contratação é necessária, viável e adequada para resolver a necessidade descrita.' },
-  texto: { min: 0, ponto: true }
+  texto: { min: 0, ponto: true },
+  lista: { min: 0, ponto: false }
 };
 
 const GENERICOS = [
@@ -131,7 +132,9 @@ function camposRevisados(p) {
     ['demanda.necessidade', 'necessidade'], ['demanda.consequencias', 'consequencias'], ['objeto.resumo', 'resumo'],
     ['objeto.memoriaQtd', 'memoria'], ['objeto.alternativas', 'texto'], ['objeto.conclusao', 'conclusao'],
     ['objeto.requisitos', 'texto'], ['objeto.solucao', 'texto'], ['objeto.resultados', 'texto'], ['objeto.impactos', 'texto'],
-    ['objeto.providencias', 'texto'], ['execucao.recebimento', 'texto'], ['execucao.garantia', 'texto']
+    ['objeto.providencias', 'texto'], ['execucao.recebimento', 'texto'], ['execucao.garantia', 'texto'],
+    ['objeto.especificacoes', 'texto'], ['objeto.vantagens', 'lista'], ['objeto.desvantagens', 'lista'], ['objeto.justEscolha', 'texto'],
+    ['execucao.metodologia', 'lista'], ['execucao.medicao', 'texto'], ['demanda.pcaJust', 'justificativa'], ['objeto.correlatas', 'texto']
   ];
   if (p.objeto.parcelamento !== 'itens') L.push(['objeto.justParcelamento', 'justificativa']);
   (p.itens || []).forEach((_, i) => L.push([`itens.${i}.desc`, 'item']));

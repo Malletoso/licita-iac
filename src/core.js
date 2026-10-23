@@ -30,6 +30,7 @@ const NAT = {
 };
 
 const PARAM = {
+  S:   'Tabela oficial de referência (SINAPI, SICRO, CDHU) — art. 23, §2º, I (obras e serviços de engenharia)',
   I:   'Painel de Preços / Banco de Preços em Saúde (PNCP) — art. 23, §1º, I',
   II:  'Contratações similares da Administração (último ano) — art. 23, §1º, II',
   III: 'Mídia especializada, tabela oficial ou sítio eletrônico — art. 23, §1º, III',
@@ -96,14 +97,14 @@ function linhasCabecalho(cfg) {
 const DADOS_IACANGA = {
   nome: 'Prefeitura do Município de Iacanga', ente: 'Município de Iacanga', cnpj: '46.137.477/0001-14',
   endereco: 'Av. das Acácias, 149 – Jardim das Flores – 17180-418 – Iacanga – SP', fone: '(14) 3294-9400',
-  email: 'pmiacanga@iacanga.sp.gov.br', site: 'www.iacanga.sp.gov.br', brasao: 'iacanga'
+  email: 'pmiacanga@iacanga.sp.gov.br', site: 'www.iacanga.sp.gov.br', brasao: 'iacanga', decretoGestao: 'Decreto Municipal nº 1.528/2025'
 };
 
 /* ---------- Configuração do município ---------- */
 function cfgPadrao() {
   return {
     id: 'm_' + uid(), nome: DADOS_IACANGA.nome, ente: DADOS_IACANGA.ente, cnpj: DADOS_IACANGA.cnpj, endereco: DADOS_IACANGA.endereco,
-    fone: DADOS_IACANGA.fone, email: DADOS_IACANGA.email, marcaDagua: true, brasaoProp: '', nomeLicitacao: 'Secretaria de Licitação',
+    fone: DADOS_IACANGA.fone, email: DADOS_IACANGA.email, marcaDagua: true, brasaoProp: '', nomeLicitacao: 'Secretaria de Licitação', decretoGestao: DADOS_IACANGA.decretoGestao,
     cidade: 'Iacanga', uf: 'SP', comarca: '', ate20mil: true, site: DADOS_IACANGA.site, diario: '', brasao: 'iacanga', plataforma: '',
     regulamento: 'federal', regulamentoTexto: '', dobro: false, desvioAlerta: 30,
     valores: { ano: 2026, norma: 'Decreto nº 12.807, de 29 de dezembro de 2025', d75i: 130984.20, d75ii: 65492.11, d75p7: 10478.74, verbal: 13098.41, tecnico: 392952.63, grandeVulto: 261968421.04, meEpp: 80000 },
@@ -122,7 +123,7 @@ function normalizarCfg(c) {
   Object.keys(base).forEach(k => { if (c[k] === undefined) c[k] = k in neutros ? neutros[k] : (typeof base[k] === 'object' ? base[k] : ''); });
   if (c.marcaDagua === '') c.marcaDagua = true;
   if (String(c.cidade || '').trim().toLowerCase() === 'iacanga') {
-    ['cnpj', 'endereco', 'fone', 'email', 'site', 'brasao'].forEach(k => { if (!has(c[k])) c[k] = DADOS_IACANGA[k]; });
+    ['cnpj', 'endereco', 'fone', 'email', 'site', 'brasao', 'decretoGestao'].forEach(k => { if (!has(c[k])) c[k] = DADOS_IACANGA[k]; });
     if (c.nome === 'Prefeitura Municipal de Iacanga') c.nome = DADOS_IACANGA.nome;
   }
   return c;
@@ -148,7 +149,7 @@ function procExemplo() {
       responsavel: '', cargo: 'Diretor de Departamento', data: hoje, prioridade: 'media', dataPretendida: '',
       necessidade: 'EXEMPLO — O Município não dispõe de mudas de espécies arbóreas nativas para executar o plantio previsto no plano municipal de arborização, que identificou pontos vagos em calçadas e praças. A falta de arborização reduz o sombreamento, agrava o desconforto térmico e deixa sem cobertura áreas onde houve supressão autorizada de exemplares.',
       consequencias: 'Sem a aquisição, o plantio programado para o período chuvoso não será executado e as compensações ambientais assumidas pelo Município ficarão pendentes.',
-      pca: 'nao_elaborado', pcaRef: ''
+      pca: 'nao_elaborado', pcaRef: '', pcaJust: '', solicitacao: ''
     },
     objeto: {
       natureza: 'compra', resumo: 'Aquisição de mudas de espécies arbóreas nativas para arborização urbana',
@@ -161,15 +162,20 @@ function procExemplo() {
       resultados: 'Plantio integral dos pontos vagos no período chuvoso, com menor taxa de perda e custo inferior à produção própria.',
       providencias: 'Designação de fiscal com conhecimento técnico em silvicultura urbana e preparo das covas antes da entrega.',
       correlatas: '', impactos: 'A contratação gera impacto ambiental positivo. Exige-se origem legal das mudas e recolhimento das embalagens pelo fornecedor (logística reversa).',
-      conclusao: 'A contratação é viável e adequada ao atendimento da necessidade descrita.'
+      conclusao: 'A contratação é viável e adequada ao atendimento da necessidade descrita.',
+      regime: '', subcontratacao: 'nao', subcontratacaoJust: '',
+      especificacoes: 'Padrão das mudas: altura mínima de 1,50 m medida do colo ao ápice, diâmetro do colo mínimo de 1,5 cm e copa formada com no mínimo 3 ramos.\n\nSanidade: As mudas devem estar isentas de pragas, doenças e plantas invasoras no torrão, com sistema radicular sem enovelamento.\n\nIdentificação: Cada lote deve vir etiquetado com o nome científico e o nome popular da espécie.',
+      vantagens: '- Plantio no período chuvoso, com maior pegamento\n- Mudas já formadas, que dispensam viveiro próprio\n- Garantia de substituição das mudas recusadas',
+      desvantagens: '- Custo unitário maior do que o da produção própria em longo prazo\n- Dependência da disponibilidade das espécies nos viveiros da região',
+      justEscolha: 'A aquisição de mudas formadas é a única solução capaz de atender ao cronograma de plantio do período chuvoso, considerando que o Município não dispõe de viveiro com capacidade de produção.'
     },
     itens: [
-      { id: uid(), desc: 'Muda de ipê-amarelo (Handroanthus chrysotrichus), altura mínima de 1,50 m, em embalagem de 15 L', unid: 'un', qtd: 120, catmat: '', precoRef: '', cot: [
+      { id: uid(), desc: 'Muda de ipê-amarelo (Handroanthus chrysotrichus), altura mínima de 1,50 m, em embalagem de 15 L', unid: 'un', qtd: 120, catmat: '', precoRef: '', local: 'Viveiro Municipal', cot: [
         { id: uid(), orcId: 'o1', fonte: 'Viveiro A', param: 'IV', data: hoje, valor: 42.5, excluir: false },
         { id: uid(), orcId: 'o2', fonte: 'Viveiro B', param: 'IV', data: hoje, valor: 39.9, excluir: false },
         { id: uid(), fonte: 'Contrato de município vizinho (PNCP)', param: 'II', data: hoje, valor: 41.0, excluir: false }
       ] },
-      { id: uid(), desc: 'Muda de pau-brasil (Paubrasilia echinata), altura mínima de 1,50 m, em embalagem de 15 L', unid: 'un', qtd: 80, catmat: '', precoRef: '', cot: [
+      { id: uid(), desc: 'Muda de pau-brasil (Paubrasilia echinata), altura mínima de 1,50 m, em embalagem de 15 L', unid: 'un', qtd: 80, catmat: '', precoRef: '', local: 'Viveiro Municipal', cot: [
         { id: uid(), orcId: 'o1', fonte: 'Viveiro A', param: 'IV', data: hoje, valor: 58.0, excluir: false },
         { id: uid(), orcId: 'o2', fonte: 'Viveiro B', param: 'IV', data: hoje, valor: 54.5, excluir: false },
         { id: uid(), orcId: 'o3', fonte: 'Viveiro C', param: 'IV', data: hoje, valor: 96.0, excluir: true, just: 'Valor 70% acima da mediana dos demais, desconsiderado como excessivamente elevado.' }
@@ -190,15 +196,18 @@ function procExemplo() {
     },
     enquadramento: { escolha: '', justDivergencia: '' },
     fornecedor: { razao: '', cnpj: '', endereco: '', representante: '', razaoEscolha: '', justPreco: '', docs: {} },
-    disputa: { criterio: '', modo: 'aberto', intervalo: '', exclusivaME: 'auto', justNaoExclusiva: '', habTecnica: '', habEconomica: '', consorcio: false, visita: false, dataSessao: '', adesao: false },
+    disputa: { criterio: '', modo: 'aberto', intervalo: '', exclusivaME: 'auto', justNaoExclusiva: '', habTecnica: '', habEconomica: '', consorcio: false, visita: false, vistoria: 'nao', vistoriaLocal: '', dataSessao: '', adesao: false },
     execucao: {
       instrumento: 'auto', prazo: '15 (quinze) dias corridos, contados do recebimento da nota de empenho', local: 'Viveiro Municipal, em horário de expediente',
       recebimento: 'Provisório, no ato da entrega, para conferência das quantidades; definitivo, em até 5 (cinco) dias úteis, após verificação da qualidade das mudas.',
       garantia: 'Substituição, sem ônus, das mudas recusadas no recebimento definitivo.', assistencia: '', pagamentoDias: 30, reajuste: 'IPCA/IBGE', vigenciaTexto: '',
-      garantiaContratual: 0, multa: 10, obrigContratada: '', obrigContratante: '', fiscal: '', fiscalCargo: '', gestor: '', gestorCargo: ''
+      garantiaContratual: 0, garantiaJust: '', multa: 10, obrigContratada: '', obrigContratante: '',
+      prazoInicio: '', metodologia: '', medicao: '', prazoRejeicao: 5,
+      gestor: '', gestorCargo: '', gestorCpf: '', fiscal: '', fiscalCargo: '', fiscalCpf: '',
+      fiscalAdm: '', fiscalAdmCargo: '', fiscalAdmCpf: '', fiscalSet: '', fiscalSetCargo: '', fiscalSetCpf: ''
     },
     riscos: RISCOS_BASE.map(r => Object.assign({ id: uid() }, r)),
-    orcamento: { orgao: '', unidade: '', funcional: '', natureza: '3.3.90.30 — Material de Consumo', fonte: '', ficha: '' }
+    orcamento: { orgao: '', unidade: '', funcional: '', natureza: '3.3.90.30 — Material de Consumo', fonte: '', ficha: '', dotacoes: [{ id: uid(), orgao: 'Meio Ambiente', ficha: '' }] }
   };
 }
 
@@ -208,15 +217,27 @@ function procVazio() {
   p.demanda.necessidade = ''; p.demanda.consequencias = ''; p.demanda.responsavel = ''; p.demanda.cargo = '';
   Object.keys(p.objeto).forEach(k => { if (typeof p.objeto[k] === 'string') p.objeto[k] = ''; });
   p.objeto.natureza = 'compra'; p.objeto.parcelamento = 'itens'; p.objeto.entregaImediata = false;
-  p.itens = [{ id: uid(), desc: '', unid: 'un', qtd: 1, catmat: '', precoRef: '', cot: [] }];
+  p.itens = [{ id: uid(), desc: '', unid: 'un', qtd: 1, catmat: '', precoRef: '', local: '', cot: [] }];
+  p.objeto.subcontratacao = 'nao';
   ['prazo', 'local', 'recebimento', 'garantia'].forEach(k => p.execucao[k] = '');
+  p.orcamento.dotacoes = [{ id: uid(), orgao: '', ficha: '' }];
   p.orcs = []; p.pedido = { prazoResposta: '', contato: '', fornecedores: [] };
   return p;
 }
 
 /* Completa campos que versões anteriores não tinham */
+const PADROES_NOVOS = {
+  demanda: { pcaJust: '', solicitacao: '' },
+  objeto: { regime: '', subcontratacao: 'nao', subcontratacaoJust: '', especificacoes: '', vantagens: '', desvantagens: '', justEscolha: '' },
+  disputa: { vistoria: 'nao', vistoriaLocal: '' },
+  execucao: { garantiaJust: '', prazoInicio: '', metodologia: '', medicao: '', prazoRejeicao: 5, gestorCpf: '', fiscalCpf: '', fiscalAdm: '', fiscalAdmCargo: '', fiscalAdmCpf: '', fiscalSet: '', fiscalSetCargo: '', fiscalSetCpf: '' }
+};
 function normalizarProc(p) {
-  (p.itens || []).forEach(it => { if (it.lote === undefined) it.lote = ''; });
+  Object.entries(PADROES_NOVOS).forEach(([g, v]) => { p[g] = p[g] || {}; Object.entries(v).forEach(([k, x]) => { if (p[g][k] === undefined) p[g][k] = x; }); });
+  if (p.disputa.visita && p.disputa.vistoria === 'nao') { p.disputa.vistoria = 'facultativa'; p.disputa.visita = false; }
+  p.orcamento = p.orcamento || {};
+  if (!Array.isArray(p.orcamento.dotacoes)) p.orcamento.dotacoes = [{ id: uid(), orgao: '', ficha: p.orcamento.ficha || '' }];
+  (p.itens || []).forEach(it => { if (it.lote === undefined) it.lote = ''; if (it.local === undefined) it.local = ''; });
   if (!p.orcs) p.orcs = [];
   if (!p.pedido) p.pedido = { prazoResposta: '', contato: '', fornecedores: [] };
   if (!p.pedido.fornecedores) p.pedido.fornecedores = [];
@@ -279,6 +300,7 @@ function analisar(p, cfg) {
   if (semPreco.length) alertas.push({ n: 'bloq', t: `${semPreco.length} item(ns) sem preço estimado. Sem estimativa não há como enquadrar a contratação (art. 23).` });
   if (poucos.length) alertas.push({ n: 'alerta', t: `${poucos.length} item(ns) com menos de 3 preços válidos: exige justificativa nos autos${cfg.regulamento === 'federal' ? ' (IN SEGES/ME nº 65/2021, art. 6º)' : ''}.` });
   if (velhos.length) alertas.push({ n: 'alerta', t: 'Há orçamentos de fornecedores com mais de 6 meses (art. 23, §1º, IV).' });
+  if ((N.eng) && p.itens.some(it => (it.cot || []).length) && !p.itens.some(it => (it.cot || []).some(c => !c.excluir && c.param === 'S'))) alertas.push({ n: 'alerta', t: 'Obras e serviços de engenharia: o valor estimado deve partir das tabelas oficiais (SINAPI, SICRO ou CDHU), com BDI e encargos (art. 23, §2º). Orçamentos de fornecedores só complementam.' });
   if (soFornecedor && p.itens.some(it => (it.cot || []).length)) alertas.push({ n: 'alerta', t: 'Pesquisa baseada só em orçamentos de fornecedores. Priorize PNCP e contratações públicas ou justifique a impossibilidade.' });
 
   // --- dispensa em razão do valor (art. 75, I e II)
@@ -495,6 +517,493 @@ function dotacaoTexto(o) {
 }
 function hipTexto(a) { return a.escolhida ? `${a.escolhida.titulo} — ${a.escolhida.base} da Lei nº 14.133/2021` : '⟦enquadramento⟧'; }
 
+/* ---------- Valor por extenso ---------- */
+function extenso(n) {
+  n = Math.floor(Math.abs(Number(n) || 0));
+  const U = ['zero', 'um', 'dois', 'três', 'quatro', 'cinco', 'seis', 'sete', 'oito', 'nove', 'dez', 'onze', 'doze', 'treze', 'quatorze', 'quinze', 'dezesseis', 'dezessete', 'dezoito', 'dezenove'];
+  const D = ['', '', 'vinte', 'trinta', 'quarenta', 'cinquenta', 'sessenta', 'setenta', 'oitenta', 'noventa'];
+  const C = ['', 'cento', 'duzentos', 'trezentos', 'quatrocentos', 'quinhentos', 'seiscentos', 'setecentos', 'oitocentos', 'novecentos'];
+  const ate999 = x => {
+    if (x === 100) return 'cem';
+    const c = Math.floor(x / 100), r = x % 100, p = [];
+    if (c) p.push(C[c]);
+    if (r) p.push(r < 20 ? U[r] : D[Math.floor(r / 10)] + (r % 10 ? ' e ' + U[r % 10] : ''));
+    return p.join(' e ');
+  };
+  if (!n) return 'zero';
+  const nomes = [['', ''], ['mil', 'mil'], ['milhão', 'milhões'], ['bilhão', 'bilhões']];
+  const grupos = []; let x = n; while (x > 0) { grupos.push(x % 1000); x = Math.floor(x / 1000); }
+  const partes = [];
+  for (let i = grupos.length - 1; i >= 0; i--) {
+    const g = grupos[i]; if (!g) continue;
+    partes.push({ g, t: i === 1 && g === 1 ? 'mil' : ate999(g) + (i ? ' ' + nomes[i][g === 1 ? 0 : 1] : '') });
+  }
+  return partes.map((q, k) => k === 0 ? q.t : ((k === partes.length - 1 && (q.g < 100 || q.g % 100 === 0)) ? ' e ' : ', ') + q.t).join('');
+}
+function reaisExtenso(v) {
+  const cent = Math.round((Number(v) || 0) * 100), r = Math.floor(cent / 100), c = cent % 100;
+  let s = '';
+  if (r) s = extenso(r) + (r >= 1e6 && r % 1e6 === 0 ? ' de reais' : r === 1 ? ' real' : ' reais');
+  if (c) s += (r ? ' e ' : '') + extenso(c) + (c === 1 ? ' centavo' : ' centavos');
+  if (!s) s = 'zero real';
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+const valorExtenso = v => `${fmtBRL(v)} (${reaisExtenso(v)})`;
+
+/* CPF em documento público: só os 3 primeiros e os 2 últimos dígitos (LGPD) */
+function mascaraCPF(c) {
+  const d = String(c || '').replace(/\D/g, '');
+  if (d.length !== 11) return has(c) ? String(c).trim() : '';
+  return `${d.slice(0, 3)}.XXX.XXX-${d.slice(9)}`;
+}
+const minuscIni = s => { s = String(s || '').trim(); return /^[A-ZÀ-Ú][a-zà-ú]/.test(s) ? s.charAt(0).toLowerCase() + s.slice(1) : s; };
+const semPonto = s => String(s || '').trim().replace(/[.;:]+$/, '');
+
+/* ---------- Texto livre → cláusulas numeradas ----------
+   Cada parágrafo vira uma cláusula (3.1, 3.2…); linhas iniciadas por "-" ou "•"
+   viram marcadores; "Título curto: texto" ganha o título em negrito.            */
+function paragrafos(texto) {
+  const out = [];
+  let novo = true;
+  String(texto || '').replace(/\r/g, '').split('\n').forEach(l => {
+    const t = l.trim();
+    if (!t) { novo = true; return; }
+    const m = t.match(/^(?:[-•*●▪]|\d+[.)]|[a-z][.)])\s+(.+)$/);
+    const ult = out[out.length - 1];
+    if (m && /^[-•*●▪]/.test(t)) { if (ult) ult.bul.push(m[1]); else out.push({ texto: m[1], bul: [] }); novo = false; return; }
+    if (!novo && ult && !ult.bul.length && !/[.:;!?]$/.test(ult.texto)) { ult.texto += ' ' + t; return; }
+    out.push({ texto: t, bul: [] }); novo = false;
+  });
+  return out;
+}
+function comTitulo(t) {
+  const s = String(t || '');
+  if (/^\*\*/.test(s)) return s;
+  const m = s.match(/^([A-ZÀ-Ú][^:.;]{1,60}):(\s+\S[\s\S]*)$/);
+  if (m && m[1].trim().split(/\s+/).length <= 7) return `**${m[1].trim()}:**${m[2]}`;
+  return s;
+}
+
+/* Montador de peça com seções "01 – TÍTULO" e cláusulas 1.1, 1.2, 1.2.1 */
+function Peca() {
+  const B = []; let s = 0, c = 0;
+  const api = {
+    blocks: B,
+    raw(b) { B.push(b); return api; },
+    sec(tit) { s++; c = 0; B.push({ t: 'sec', text: `${String(s).padStart(2, '0')} – ${tit.toUpperCase()}` }); return api; },
+    sub(tit) { B.push({ t: 'sub', text: tit }); return api; },
+    cl(text, bul, usuario) {
+      c++; const n = `${s}.${c}.`;
+      B.push({ t: 'cl', num: n, text: usuario ? comTitulo(text) : text });
+      (bul || []).forEach(x => B.push({ t: 'bul', text: comTitulo(x) }));
+      return n;
+    },
+    sub2(pai, k, text, bul) {
+      B.push({ t: 'cl', num: `${pai}${k}.`, text: comTitulo(text), nivel: 2 });
+      (bul || []).forEach(x => B.push({ t: 'bul', text: comTitulo(x), nivel: 2 }));
+    },
+    bul(text) { B.push({ t: 'bul', text: comTitulo(text) }); },
+    texto(t, label) {
+      const ps = paragrafos(t);
+      if (!ps.length) { if (label) api.cl('⟦' + label + '⟧'); return false; }
+      ps.forEach(x => api.cl(x.texto, x.bul, true));
+      return true;
+    },
+    subtexto(pai, t) { paragrafos(t).forEach((x, k) => api.sub2(pai, k + 1, x.texto, x.bul)); }
+  };
+  return api;
+}
+
+/* ---------- Pessoas e textos recorrentes ---------- */
+function pessoa(nome, cargo, cpf, label) {
+  const partes = [ph(nome, label || 'nome')];
+  if (has(cargo)) partes.push(cargo.trim());
+  const m = mascaraCPF(cpf);
+  partes.push(m ? 'CPF nº ' + m : '⟦CPF⟧');
+  return partes.join(', ');
+}
+const REGIMES = {
+  preco_unitario: 'empreitada por preço unitário', preco_global: 'empreitada por preço global', integral: 'empreitada integral',
+  tarefa: 'contratação por tarefa', integrada: 'contratação integrada', semi: 'contratação semi-integrada', servico_assoc: 'fornecimento e prestação de serviço associado'
+};
+const ehEng = nat => !!(NAT[nat] || {}).eng || nat === 'manut_veic';
+const ehCompra = nat => nat === 'compra';
+function regimeTexto(o) { return ehCompra(o.natureza) ? '' : (REGIMES[o.regime] || ''); }
+function decretoGestao(cfg) { return has(cfg.decretoGestao) ? cfg.decretoGestao.trim() : ''; }
+const DEC_IACANGA = 'Decreto Municipal nº 1.528/2025';
+function refDec(cfg, art) { const d = decretoGestao(cfg); return d === DEC_IACANGA && art ? `${art.startsWith(',') ? '' : ' '}${art} do ${d}` : ''; }
+
+function textoJulgamentoTR(p) {
+  const par = p.objeto.parcelamento, n = p.itens.length;
+  if (par === 'global' || n === 1) return n === 1
+    ? 'A contratação compreende item único, devendo a empresa vencedora responsabilizar-se pela totalidade do objeto.'
+    : 'A licitação será processada como lote único, englobando todos os itens e serviços detalhados, devendo a empresa vencedora responsabilizar-se pela totalidade dos serviços e materiais exigidos.';
+  if (par === 'lotes') return `A contratação será dividida em lotes, cada um disputado e adjudicado separadamente, podendo haver um vencedor diferente para cada lote. O licitante poderá participar de um ou mais lotes, desde que cote todos os itens de cada lote. ${composicaoLotes(p)}`;
+  return 'A contratação será dividida por itens, cada um disputado e adjudicado separadamente, podendo haver um vencedor diferente para cada item.';
+}
+function fontesPesquisa(p) {
+  const usados = new Set();
+  p.itens.forEach(it => (it.cot || []).forEach(c => { if (!c.excluir && num(c.valor) > 0) usados.add(c.param || 'IV'); }));
+  const nomes = {
+    S: 'tabelas oficiais de referência (SINAPI, SICRO ou CDHU)', I: 'painel de preços e contratações publicadas no PNCP', II: 'contratações similares de outros entes públicos',
+    III: 'mídia especializada, tabelas de referência e sítios eletrônicos', IV: 'orçamentos obtidos diretamente com fornecedores do ramo', V: 'base nacional de notas fiscais eletrônicas'
+  };
+  const l = ['S', 'I', 'II', 'III', 'IV', 'V'].filter(k => usados.has(k)).map(k => nomes[k]);
+  return l.length ? l.join('; ') : '⟦fontes da pesquisa de preços⟧';
+}
+function cicloVida(p) {
+  const o = p.objeto, nat = o.natureza, sec = ph(p.demanda.secretaria, 'secretaria requisitante');
+  if (ehCompra(nat)) return [
+    `**Início do ciclo de vida:** O ciclo inicia-se com a emissão da nota de empenho ou da autorização de fornecimento, a partir da qual a contratada deverá separar, embalar e transportar os bens até o local indicado, às suas expensas.`,
+    `**Entrega e recebimento:** Os bens serão recebidos provisoriamente, para conferência das quantidades, e definitivamente, após a verificação da conformidade com as especificações deste estudo e do Termo de Referência.`,
+    `**Uso:** Após o aceite, os bens serão utilizados pelo(a) ${sec} na finalidade que motivou a contratação, cabendo ao fiscal registrar eventuais defeitos.`,
+    `**Garantia:** Durante o prazo de garantia, a contratada deverá substituir, sem ônus para a Administração, os bens que apresentarem vícios ou defeitos, mediante notificação do fiscal.`,
+    `**Final do ciclo de vida:** Embalagens e bens inservíveis deverão ter destinação ambientalmente adequada, observadas a Lei nº 12.305/2010 (Política Nacional de Resíduos Sólidos) e, quando aplicável, a logística reversa a cargo do fornecedor.`
+  ];
+  if (ehEng(nat)) return [
+    `**Início do ciclo de vida:** O ciclo inicia-se com a emissão da Ordem de Serviço, a partir da qual a contratada deverá mobilizar os recursos humanos, materiais e equipamentos necessários, responsabilizando-se pelo fornecimento e transporte de todos os insumos.`,
+    `**Execução:** Os serviços deverão seguir rigorosamente as especificações técnicas estabelecidas, garantindo a correta aplicação dos materiais e a conformidade estrutural. A localização e a prioridade dos trabalhos serão definidas pelo(a) ${sec}.`,
+    `**Operação e uso:** Após a execução e o aceite pela Administração, o objeto deverá apresentar resistência e durabilidade compatíveis com as condições ambientais e de uso, cumprindo sua função ao longo da vida útil.`,
+    `**Manutenção:** A contratada deverá assegurar a qualidade dos materiais e da execução, com garantia unificada de material e serviço. A fiscalização municipal realizará inspeções periódicas para acionar a garantia, quando necessário.`,
+    `**Final do ciclo de vida:** Ao término da vida útil, os materiais deverão ser removidos e, preferencialmente, reaproveitados. O descarte do material não reaproveitável deverá ser ambientalmente adequado, observadas a Lei nº 12.305/2010 e a Resolução CONAMA nº 307/2002.`
+  ];
+  return [
+    `**Início do ciclo de vida:** O ciclo inicia-se com a emissão da Ordem de Serviço, a partir da qual a contratada deverá mobilizar a equipe e os recursos necessários à execução.`,
+    `**Execução:** Os serviços serão prestados conforme as especificações, os prazos e a metodologia deste estudo e do Termo de Referência, sob acompanhamento do fiscal do contrato.`,
+    `**Resultado e recebimento:** Cada etapa executada será medida e recebida pela fiscalização, que verificará o atendimento das exigências técnicas antes do pagamento.`,
+    `**Encerramento:** Ao final da execução, o gestor do contrato registrará a avaliação do desempenho da contratada, subsidiando futuras contratações.`
+  ];
+}
+function garantiaPadrao(nat) {
+  if (ehEng(nat) && nat !== 'manut_veic') return 'O prazo de garantia será de 5 (cinco) anos, contados do recebimento definitivo, quanto à solidez e à segurança do trabalho, em razão dos materiais e do solo, nos termos do art. 618 da Lei nº 10.406/2002 (Código Civil). Para componentes de desgaste natural ou mecanismos móveis, aplica-se a garantia legal de 90 (noventa) dias ou a do fabricante, prevalecendo a maior.';
+  if (nat === 'manut_veic') return 'Os serviços terão garantia mínima de 90 (noventa) dias e as peças, a garantia do fabricante, nunca inferior a 90 (noventa) dias, contados do recebimento definitivo.';
+  if (ehCompra(nat)) return 'Os bens terão garantia mínima igual à garantia legal (Código de Defesa do Consumidor) ou à oferecida pelo fabricante, prevalecendo a maior, contada do recebimento definitivo.';
+  return 'Durante a vigência contratual, a contratada deverá refazer, sem ônus para a Administração, os serviços executados em desacordo com as especificações.';
+}
+function medicaoPadrao(p) {
+  const NOMES = { un: 'unidade', und: 'unidade', unid: 'unidade', unidade: 'unidade', m: 'metro linear', ml: 'metro linear', 'metro linear': 'metro linear', metro: 'metro linear', 'm²': 'metro quadrado', m2: 'metro quadrado', 'metro quadrado': 'metro quadrado', 'm³': 'metro cúbico', m3: 'metro cúbico', kg: 'quilo', l: 'litro', h: 'hora', hora: 'hora', mês: 'mês', mes: 'mês', 'diária': 'diária', serviço: 'serviço' };
+  const unids = [...new Set(p.itens.map(it => { const u = String(it.unid || 'un').trim(); return NOMES[u.toLowerCase()] || u; }).filter(Boolean))];
+  const lista = unids.length > 1 ? unids.slice(0, -1).join(', ') + ' e ' + unids[unids.length - 1] : unids[0];
+  const compra = ehCompra(p.objeto.natureza);
+  return compra
+    ? `Os bens serão quantificados por ${lista} efetivamente entregue e aceito pela fiscalização, conforme cada autorização de fornecimento, mediante verificação do cumprimento das especificações técnicas.`
+    : `Os serviços serão medidos por ${lista} efetivamente executado e aprovado pela fiscalização, após a conclusão de cada etapa solicitada na Ordem de Serviço, mediante verificação do cumprimento das especificações técnicas.`;
+}
+function vigenciaTR(p) {
+  const o = p.objeto, e = p.execucao;
+  if (o.continuo) return `O prazo de vigência do contrato será de ${ph(e.vigenciaTexto || (o.vigenciaMeses ? o.vigenciaMeses + ' (' + extenso(num(o.vigenciaMeses)) + ') meses' : ''), 'vigência')}, contado da assinatura, prorrogável sucessivamente até o limite de 10 (dez) anos, na forma dos arts. 106 e 107 da Lei nº 14.133/2021.`;
+  if (ehCompra(o.natureza) && o.entregaImediata && !has(e.vigenciaTexto)) return 'Por se tratar de compra com entrega imediata e integral, sem obrigações futuras, a contratação poderá ser formalizada por instrumento substitutivo do contrato, como a nota de empenho (art. 95, II, da Lei nº 14.133/2021).';
+  return `O prazo de vigência do contrato será de ${ph(e.vigenciaTexto, 'vigência, ex.: 12 (doze) meses')}, contado da assinatura. Não concluído o objeto no período, o prazo será prorrogado automaticamente, na forma do art. 111 da Lei nº 14.133/2021.`;
+}
+function selecaoTR(p, cfg, a) {
+  const h = a.escolhida;
+  if (!h) return ['⟦forma de seleção do fornecedor⟧'];
+  if (!a.direta) {
+    const crit = criterioPadrao(p, h, a.est, cfg).toUpperCase();
+    const julg = p.objeto.parcelamento === 'lotes' ? ' POR LOTE' : p.objeto.parcelamento === 'global' && p.itens.length > 1 ? ' GLOBAL' : p.itens.length > 1 ? ' POR ITEM' : '';
+    return [`**Forma de Seleção:** O fornecedor será selecionado por meio de LICITAÇÃO, na modalidade ${h.titulo.toUpperCase()}, sob a forma ELETRÔNICA, com adoção do critério de julgamento pelo ${crit}${julg}.`];
+  }
+  const out = [`**Forma de Seleção:** O fornecedor será selecionado por meio de contratação direta, com fundamento no ${h.base} da Lei nº 14.133/2021 (${h.titulo.toLowerCase()}).`];
+  if (['75-I', '75-II'].includes(h.id)) {
+    out.push('A contratação será precedida de aviso em sítio eletrônico oficial, pelo prazo mínimo de 3 (três) dias úteis, para obtenção de propostas adicionais, selecionando-se a de menor preço (art. 75, §3º).');
+    if (a.simples) out.push(`O enquadramento será confirmado pela ${setorLic(cfg)}, após a verificação do somatório das despesas de mesma natureza no exercício (art. 75, §1º).`);
+  }
+  return out;
+}
+
+/* ======================= ETP (modelo Iacanga) ======================= */
+function docETP(p, cfg, a) {
+  const o = p.objeto, d = p.demanda, e = p.execucao, P = Peca(), ano = cfg.valores.ano;
+  P.raw({ t: 'title', text: 'ESTUDO TÉCNICO PRELIMINAR' });
+
+  P.sec('Da unidade requisitante');
+  P.cl(`**Órgão Requisitante:** ${ph(d.secretaria, 'secretaria')}${has(d.unidade) && d.unidade !== d.secretaria ? ', por meio do(a) ' + d.unidade : ''}, sob a responsabilidade de ${ph(d.responsavel, 'nome do responsável')}, ${ph(d.cargo, 'cargo')}.`);
+  P.cl(`**Fundamentação Legal:** Este Estudo Técnico Preliminar (ETP) foi elaborado em observância ao art. 18, §§ 1º e 2º, da Lei Federal nº 14.133/2021${cfg.regulamento === 'municipal' && has(cfg.regulamentoTexto) ? ' e ao ' + cfg.regulamentoTexto : ''}, com a finalidade de caracterizar a necessidade e a melhor solução para o interesse público.`);
+
+  P.sec('Do objeto');
+  const reg = regimeTexto(o);
+  P.cl(`O presente processo tem por objetivo a ${minuscIni(semPonto(ph(o.resumo, 'objeto')))}${reg ? ', sob o regime de ' + reg : ''}, conforme as especificações técnicas e os quantitativos constantes deste estudo e do Termo de Referência.`);
+  const comLocal = p.itens.some(it => has(it.local));
+  P.cl('O objeto compreende os seguintes itens:');
+  P.raw(comLocal
+    ? { t: 'table', cols: [{ h: 'Item', w: 1 }, { h: 'Descrição técnica', w: 6 }, { h: 'Locais', w: 3.4 }], rows: p.itens.map((it, i) => [String(i + 1).padStart(2, '0'), ph(it.desc, 'descrição do item'), has(it.local) ? it.local : '—']) }
+    : itensTabela(p, false));
+  P.texto(o.requisitos);
+  if (has(o.especificacoes)) { P.cl('Todos os materiais e a execução dos serviços devem respeitar rigorosamente as especificações abaixo.'); P.texto(o.especificacoes); }
+
+  P.sec('Fundamentação e descrição da necessidade da contratação');
+  P.texto(d.necessidade, 'descrição da necessidade: problema, quem é afetado, desde quando, risco');
+  if (has(d.consequencias)) P.cl(`**Consequências da não contratação:** ${d.consequencias.trim()}`);
+
+  P.sec('Demonstração da previsão da contratação no Plano Anual de Contratações');
+  if (d.pca === 'sim') P.cl(`A presente contratação está prevista no Plano de Contratações Anual (PCA) do exercício de ${ano}${has(d.pcaRef) ? ' (' + d.pcaRef.trim() + ')' : ''}, em alinhamento com o planejamento da Administração.`);
+  else {
+    if (d.pca === 'nao') {
+      P.cl(`A presente contratação não constou inicialmente no Plano de Contratações Anual (PCA) do exercício de ${ano}.`);
+      P.texto(d.pcaJust, 'justificativa da inclusão da demanda fora do PCA (demanda superveniente)');
+    } else P.cl(`O Município não elaborou Plano de Contratações Anual para o exercício de ${ano}, instrumento de elaboração facultativa (art. 12, VII, da Lei nº 14.133/2021). A demanda alinha-se às ações da unidade requisitante previstas no orçamento vigente.`);
+    P.cl('A contratação possui adequação orçamentária, havendo previsão de recursos na Lei Orçamentária Anual (LOA) vigente, conforme declaração de disponibilidade orçamentária a ser juntada aos autos.');
+  }
+
+  P.sec('Requisitos da contratação');
+  P.cl('A CONTRATADA deverá preencher todos os requisitos de regularidade jurídica, fiscal, social, trabalhista, técnica e econômico-financeira previstos na Lei nº 14.133/2021.');
+  if (has(p.disputa.habTecnica)) P.cl(`Para fins de habilitação técnica, a contratada deverá comprovar: ${p.disputa.habTecnica.trim()}`);
+  P.sub('Subcontratação');
+  P.cl(o.subcontratacao === 'parcial' ? `É admitida a subcontratação parcial do objeto, nos limites autorizados pela Administração e sem transferência da responsabilidade da contratada (art. 122 da Lei nº 14.133/2021). ${has(o.subcontratacaoJust) ? o.subcontratacaoJust.trim() : '⟦parcelas que podem ser subcontratadas e limite⟧'}` : 'Não é admitida a subcontratação do objeto contratual.');
+  P.sub('Garantia da contratação');
+  P.cl(num(e.garantiaContratual) > 0
+    ? `Será exigida garantia de ${num(e.garantiaContratual)}% do valor inicial do contrato, em uma das modalidades do art. 96, §1º, da Lei nº 14.133/2021.`
+    : `Não haverá exigência da garantia da contratação de que tratam os arts. 96 e seguintes da Lei nº 14.133/2021, ${has(e.garantiaJust) ? semPonto(minuscIni(e.garantiaJust)) : 'considerando a natureza do objeto e que o pagamento ocorrerá somente após a execução e o recebimento'}.`);
+  if (has(e.metodologia)) { const ps = paragrafos(e.metodologia); P.cl(`Na execução do ${ehCompra(o.natureza) ? 'fornecimento' : 'serviço'}, devem ser observados:`, ps.flatMap(x => [x.texto, ...x.bul])); }
+  P.sub('Garantia, manutenção e assistência técnica');
+  P.texto(has(e.garantia) ? e.garantia : garantiaPadrao(o.natureza));
+  if (has(e.assistencia)) P.texto(e.assistencia);
+  vistoriaClausulas(P, p, false);
+
+  P.sec('Estimativas das quantidades para a contratação');
+  P.texto(o.memoriaQtd, 'memória de cálculo das quantidades: a conta que leva a cada quantidade');
+  if (comLocal) P.raw(itensTabela(p, false));
+  P.cl(textoJulgamentoTR(p));
+
+  P.sec('Levantamento de mercado');
+  if (!P.texto(o.alternativas)) P.cl('Foi realizado levantamento das soluções disponíveis no mercado para o atendimento da necessidade, considerando a aquisição ou contratação junto a fornecedores especializados.');
+  if (has(o.vantagens)) P.cl(`**Vantagens da solução escolhida:**`, paragrafos(o.vantagens).flatMap(x => [x.texto, ...x.bul]));
+  if (has(o.desvantagens)) P.cl(`**Desvantagens e riscos da solução escolhida:**`, paragrafos(o.desvantagens).flatMap(x => [x.texto, ...x.bul]));
+  if (has(o.justEscolha)) { P.sub('Justificativa da escolha da solução'); P.texto(o.justEscolha); }
+  const nForn = new Set(p.itens.flatMap(it => (it.cot || []).filter(c => !c.excluir && num(c.valor) > 0).map(c => c.fonte))).size;
+  P.cl(`Para a elaboração deste Estudo Técnico Preliminar, foi realizada pesquisa de mercado${nForn ? `, com ${nForn} ${nForn > 1 ? 'fontes de preço válidas' : 'fonte de preço válida'}` : ''}, assegurando a viabilidade técnica e econômica da solução proposta.`);
+
+  P.sec('Descrição da solução como um todo');
+  P.texto(o.solucao);
+  cicloVida(p).forEach(t => P.cl(t));
+
+  P.sec('Do parcelamento ou não da contratação');
+  if (p.itens.length === 1) P.cl('O objeto é composto por item único, não havendo parcelamento a considerar.');
+  else if (o.parcelamento === 'itens') P.cl('A contratação será parcelada por itens, regra prevista no art. 40, V, "b", da Lei nº 14.133/2021, permitindo que cada item seja disputado separadamente, o que amplia a competição e favorece a obtenção de preços mais vantajosos.');
+  else {
+    P.cl(o.parcelamento === 'lotes'
+      ? `A contratação será dividida em lotes, agrupando itens de mesma natureza. ${composicaoLotes(p)}`
+      : `A presente contratação não será parcelada, optando-se pela adjudicação do objeto a um único fornecedor, com fundamento no art. 40, §3º${ehCompra(o.natureza) ? '' : ', e no art. 47, §1º'}, da Lei nº 14.133/2021.`);
+    P.texto(o.justParcelamento, o.parcelamento === 'lotes' ? 'justificativa técnica ou econômica do agrupamento em lotes' : 'justificativa técnica e econômica do não parcelamento');
+  }
+
+  P.sec('Estimativa do valor da contratação');
+  P.cl(`O valor total estimado para a contratação é de **${valorExtenso(a.est)}**.`);
+  P.cl(`**Metodologia de Pesquisa:** A estimativa de preços foi realizada em conformidade com o art. 23 da Lei nº 14.133/2021, com base em: ${fontesPesquisa(p)}.`);
+  const exc = p.itens.reduce((x, it) => x + (it.cot || []).filter(c => c.excluir).length, 0);
+  P.cl(`**Critério de Cálculo:** Para a definição do valor de referência de cada item, foi utilizada a ${{ media: 'média', mediana: 'mediana', menor: 'menor valor' }[p.pesquisa.metodo] || 'mediana'} dos preços válidos${exc ? `, desconsiderando-se ${exc} ${exc > 1 ? 'valores' : 'valor'} com variação excessiva em relação à tendência central (inexequíveis ou com sobrepreço)` : ''}, garantindo a economicidade e a compatibilidade com a realidade de mercado.`);
+  if (has(p.pesquisa.just)) P.texto(p.pesquisa.just);
+  P.cl('A memória de cálculo detalhada, com as planilhas comparativas, as fontes consultadas e a data-base dos orçamentos, encontra-se acostada aos autos do processo administrativo.');
+
+  P.sec('Demonstrativo dos resultados pretendidos');
+  if (!P.texto(o.resultados)) {
+    P.cl('Atender integralmente à necessidade descrita no item 03 deste estudo, nas quantidades e especificações definidas.');
+    P.cl('Assegurar a economicidade e a eficiência da contratação, com qualidade e durabilidade compatíveis com o uso pretendido.');
+    P.cl('Garantir a continuidade e a regularidade dos serviços públicos prestados pela unidade requisitante.');
+  }
+
+  P.sec('Providências a serem adotadas pela Administração previamente à celebração do contrato');
+  if (!P.texto(o.providencias)) P.cl('Não serão necessárias providências prévias à celebração do contrato, além da designação formal do gestor e dos fiscais (art. 117 da Lei nº 14.133/2021).');
+
+  P.sec('Contratações correlatas e/ou interdependentes');
+  if (!P.texto(o.correlatas)) P.cl('Não foram identificadas contratações correlatas ou interdependentes para a viabilidade do objeto.');
+
+  P.sec('Descrição de possíveis impactos ambientais e respectivas medidas mitigadoras');
+  if (!P.texto(o.impactos)) P.cl(`A contratada deverá adotar práticas de sustentabilidade na execução, dando destinação ambientalmente adequada às embalagens e aos resíduos gerados, sem ônus para a Administração, conforme a Lei nº 12.305/2010${ehEng(o.natureza) && o.natureza !== 'manut_veic' ? ' e a Resolução CONAMA nº 307/2002' : ''}.`);
+
+  P.sec('Posicionamento conclusivo e escolha da solução');
+  P.texto(o.conclusao);
+  P.cl('Pelo exposto, declara-se a viabilidade e a razoabilidade da contratação, nos termos dispostos na solicitação e neste Estudo Técnico Preliminar.');
+
+  P.raw({ t: 'p', text: `${cfg.cidade}, ${dataExtenso(d.data)}.`, align: 'right' });
+  P.raw({ t: 'sig', nome: ph(d.responsavel, 'nome do responsável'), cargo: ph(d.cargo, 'cargo'), caps: true });
+  return { id: 'etp', titulo: 'Estudo Técnico Preliminar', sigla: 'ETP', fund: 'art. 18, §1º', blocks: P.blocks };
+}
+
+function vistoriaClausulas(P, p, tr) {
+  const v = p.disputa.vistoria || 'nao', onde = ph(p.disputa.vistoriaLocal || p.demanda.secretaria, 'unidade para agendamento');
+  if (v === 'nao') return;
+  if (tr) {
+    const n = P.cl('**Da Vistoria Técnica:**');
+    P.sub2(n, 1, v === 'obrigatoria'
+      ? 'A licitante deverá realizar vistoria técnica prévia aos locais de execução, a fim de avaliar as condições dos terrenos, acessos e demais particularidades que influenciem a composição de seus preços. ⟦justificar a obrigatoriedade: imprescindível ao conhecimento do objeto (art. 63, §2º)⟧'
+      : 'É facultada à licitante a realização de vistoria técnica prévia aos locais onde serão executados os serviços, a fim de avaliar as condições dos terrenos, acessos e demais particularidades que possam influenciar na composição de seus preços.');
+    P.sub2(n, 2, `A vistoria deverá ser agendada junto ao(à) ${onde}, mediante contato prévio.`);
+    if (v === 'facultativa') P.sub2(n, 3, 'Caso a licitante opte por não realizar a vistoria, deverá apresentar Declaração de Pleno Conhecimento do Objeto, atestando ciência das condições locais e de que os preços propostos são suficientes para a execução integral, não podendo alegar desconhecimento para pleitear aditivos ou reequilíbrio (art. 63, §3º).');
+    return;
+  }
+  P.cl(v === 'obrigatoria'
+    ? 'Dadas as particularidades dos locais de execução, a vistoria técnica prévia será obrigatória.'
+    : 'Dada a dispersão e as particularidades dos locais de execução, facultar-se-á aos interessados a realização de vistoria técnica prévia.');
+  if (v === 'facultativa') P.cl('Caso a licitante opte por não realizar a vistoria, deverá apresentar, junto à proposta, declaração formal de pleno conhecimento das condições locais e da natureza dos serviços.');
+  P.cl(`O agendamento da vistoria deverá ser realizado junto ao(à) ${onde}.`);
+}
+
+/* ======================= TR (modelo Iacanga) ======================= */
+function docTR(p, cfg, a) {
+  const o = p.objeto, e = p.execucao, d = p.demanda, P = Peca(), compra = ehCompra(o.natureza);
+  P.raw({ t: 'title', text: 'TERMO DE REFERÊNCIA' });
+
+  P.sec('Condições gerais da contratação');
+  P.cl(`O presente Termo de Referência tem por objetivo a ${minuscIni(semPonto(ph(o.resumo, 'objeto')))}, no âmbito do(a) ${ph(d.secretaria, 'secretaria')}.`);
+  P.cl(textoJulgamentoTR(p));
+  P.cl(vigenciaTR(p));
+  P.cl(`A solução consiste ${compra ? 'no fornecimento dos itens' : 'na execução dos itens'} abaixo descritos, conforme as especificações técnicas detalhadas:`);
+  P.raw(itensTabela(p, false));
+  const locais = p.itens.map((it, i) => has(it.local) ? `Item ${String(i + 1).padStart(2, '0')}: ${it.local.trim()}` : null).filter(Boolean);
+  if (locais.length) P.cl(`Os locais de ${compra ? 'entrega' : 'execução'}, por item, são:`, locais);
+  if (has(o.requisitos) || has(o.especificacoes)) {
+    const n = P.cl('**Detalhamento Técnico dos Materiais e Serviços:**');
+    const ps = paragrafos([o.requisitos, o.especificacoes].filter(has).join('\n\n'));
+    ps.forEach((x, k) => P.sub2(n, k + 1, x.texto, x.bul));
+  }
+
+  P.sec('Fundamentação e descrição da necessidade da contratação');
+  P.texto(d.necessidade, 'descrição da necessidade');
+  if (has(d.consequencias)) P.cl(`**Consequências da não contratação:** ${d.consequencias.trim()}`);
+  P.cl('A fundamentação completa da contratação consta do Estudo Técnico Preliminar que integra os autos.');
+
+  P.sec('Descrição da solução como um todo');
+  if (!P.texto(o.solucao)) P.cl(`A solução proposta consiste na ${minuscIni(semPonto(ph(o.resumo, 'objeto')))}, abrangendo ${compra ? 'o fornecimento, a entrega e a garantia dos bens' : 'o fornecimento de todos os materiais, equipamentos e mão de obra necessários'}, conforme as especificações técnicas e os quantitativos deste Termo de Referência.`);
+
+  P.sec('Requisitos da contratação');
+  P.cl('A CONTRATADA deverá preencher todos os requisitos de regularidade jurídica, fiscal, social, trabalhista, técnica e econômico-financeira previstos na Lei nº 14.133/2021.');
+  if (has(p.disputa.habTecnica)) { const n = P.cl('Para fins de habilitação técnica e garantia da qualidade, a contratada deverá comprovar:'); paragrafos(p.disputa.habTecnica).forEach((x, k) => P.sub2(n, k + 1, x.texto, x.bul)); }
+  if (has(p.disputa.habEconomica)) P.cl(`**Qualificação econômico-financeira:** ${p.disputa.habEconomica.trim()}`);
+  P.cl(o.subcontratacao === 'parcial' ? `É admitida a subcontratação parcial, sem transferência de responsabilidade da contratada (art. 122). ${has(o.subcontratacaoJust) ? o.subcontratacaoJust.trim() : '⟦parcelas e limite da subcontratação⟧'}` : 'Não será admitida a subcontratação do objeto.');
+  P.cl(has(e.garantia) ? e.garantia.trim() : garantiaPadrao(o.natureza));
+  P.cl(num(e.garantiaContratual) > 0 ? `Será exigida garantia de ${num(e.garantiaContratual)}% do valor inicial do contrato, em uma das modalidades do art. 96, §1º, da Lei nº 14.133/2021.` : 'Não será exigida garantia da contratação (arts. 96 e seguintes da Lei nº 14.133/2021).');
+  vistoriaClausulas(P, p, true);
+
+  P.sec('Execução do objeto');
+  if (has(e.metodologia)) { const ps = paragrafos(e.metodologia); P.cl(`A execução ${compra ? 'do fornecimento' : 'dos serviços'} deverá observar rigorosamente a seguinte metodologia:`, ps.flatMap(x => [x.texto, ...x.bul])); }
+  P.cl(`${compra ? 'Os bens serão entregues' : 'Os serviços serão prestados'} em: ${ph(e.local, 'local de entrega ou execução')}${compra ? '' : ', conforme demanda e emissão de Ordem de Serviço'}.`);
+  P.cl([has(e.prazoInicio) ? `A contratada terá até ${semPonto(e.prazoInicio)} para iniciar ${compra ? 'o fornecimento' : 'os serviços'}.` : '', `O prazo de ${compra ? 'entrega' : 'execução'} é de ${semPonto(ph(e.prazo, 'prazo de entrega ou execução'))}.`].filter(Boolean).join(' '));
+  P.cl(has(e.recebimento) ? e.recebimento.trim() : `O recebimento provisório ocorrerá no ato da ${compra ? 'entrega' : 'conclusão de cada etapa'}, para efeito de posterior verificação, e o definitivo, após a verificação da qualidade e da conformidade com este termo, em até 10 (dez) dias úteis (art. 140 da Lei nº 14.133/2021).`);
+
+  P.sec('Gestão e fiscalização');
+  P.sub('GESTOR DO CONTRATO');
+  P.cl(`Indica-se o(a) servidor(a) ${pessoa(e.gestor, e.gestorCargo, e.gestorCpf, 'nome do gestor')}, para atuar como Gestor do Contrato.`);
+  P.sub('FISCAL TÉCNICO DO CONTRATO');
+  P.cl(`Indica-se o(a) servidor(a) ${pessoa(e.fiscal, e.fiscalCargo, e.fiscalCpf, 'nome do fiscal técnico')}, para atuar como Fiscal Técnico do Contrato.`);
+  if (has(e.fiscalAdm)) { P.sub('FISCAL ADMINISTRATIVO DO CONTRATO'); P.cl(`Indica-se o(a) servidor(a) ${pessoa(e.fiscalAdm, e.fiscalAdmCargo, e.fiscalAdmCpf)}, para atuar como Fiscal Administrativo do Contrato.`); }
+  if (has(e.fiscalSet)) { P.sub('FISCAL SETORIAL DO CONTRATO'); P.cl(`Indica-se o(a) servidor(a) ${pessoa(e.fiscalSet, e.fiscalSetCargo, e.fiscalSetCpf)}, para atuar como Fiscal Setorial do Contrato.`); }
+  P.cl(decretoGestao(cfg)
+    ? `As atribuições e responsabilidades dos agentes indicados estão discriminadas no ${decretoGestao(cfg)}${has(cfg.site) ? ', disponível no endereço eletrônico oficial do Município (' + cfg.site + ')' : ''}, e no art. 117 da Lei nº 14.133/2021.`
+    : 'As atribuições dos agentes indicados observarão o art. 117 da Lei nº 14.133/2021 e o regulamento aplicável.');
+
+  P.sec('Critérios de medição e de pagamento');
+  P.cl(`**Acompanhamento e Medição:** ${has(e.medicao) ? e.medicao.trim() : medicaoPadrao(p)}`);
+  P.cl(`**Rejeição:** ${compra ? 'Os bens' : 'Os serviços'} poderão ser rejeitados, no todo ou em parte, quando em desacordo com as especificações, devendo ser ${compra ? 'substituídos' : 'refeitos'} pela contratada, às suas custas, no prazo de ${num(e.prazoRejeicao) || 5} (${extenso(num(e.prazoRejeicao) || 5)}) dias.`);
+  P.cl(`**Prazo de Pagamento:** O pagamento será efetuado em até ${num(e.pagamentoDias) || 30} (${extenso(num(e.pagamentoDias) || 30)}) dias, contados da emissão da nota fiscal devidamente atestada pela fiscalização, observada a ordem cronológica de pagamentos (art. 141 da Lei nº 14.133/2021).`);
+  if (has(e.reajuste) && (o.continuo || !compra)) P.cl(`**Reajuste:** Os preços poderão ser reajustados após 12 (doze) meses da data do orçamento estimado, pelo índice ${e.reajuste.trim()} (art. 25, §7º).`);
+
+  P.sec('Forma e critérios de seleção do fornecedor e forma de fornecimento');
+  selecaoTR(p, cfg, a).forEach(t => P.cl(t));
+  P.cl(`**Forma de Fornecimento:** ${compra
+    ? (o.entregaImediata ? 'O fornecimento será integral, em entrega única, após o recebimento da nota de empenho.' : 'O fornecimento será parcelado, conforme as solicitações da unidade requisitante.')
+    : 'A execução do objeto será realizada por local, mediante Ordem de Serviço, com pagamento após medição e atesto do fiscal técnico.'}`);
+
+  P.sec('Estimativas do valor da contratação');
+  P.cl(`O custo estimado total da contratação é de **${valorExtenso(a.est)}**, conforme ${{ media: 'média', mediana: 'mediana', menor: 'menor valor' }[p.pesquisa.metodo] || 'mediana'} dos preços válidos de cada item, apurados na pesquisa de preços que integra os autos.`);
+
+  P.sec('Adequação orçamentária');
+  P.cl('As despesas decorrentes da presente contratação correrão à conta de recursos específicos consignados no Orçamento vigente.');
+  const dots = (p.orcamento.dotacoes || []).filter(x => has(x.orgao) || has(x.ficha));
+  if (dots.length) P.cl(`As despesas serão atendidas pelas dotações orçamentárias próprias de ${dots.length > 1 ? 'cada órgão requisitante' : 'o órgão requisitante'} para o exercício de ${cfg.valores.ano}${dots.length > 1 ? ', conforme suas respectivas cotas-partes' : ''}, sendo:`, dots.map(x => `${ph(x.orgao, 'órgão')}: ficha ${ph(x.ficha, 'ficha')}`));
+  else if (!a.simples && has(p.orcamento.ficha)) P.cl(`Dotação: ${dotacaoTexto(p.orcamento)}.`);
+  else P.cl('A dotação orçamentária será indicada pela unidade de contabilidade.');
+
+  if (!a.simples && a.instrumento && a.instrumento.tipo === 'substitutivo') {
+    P.sec('Obrigações das partes');
+    P.cl(`**Da contratada:** ${has(e.obrigContratada) ? e.obrigContratada.trim() : 'executar o objeto conforme este termo; reparar ou substituir, às suas expensas, o que for recusado; manter as condições de habilitação durante toda a execução; responder pelos encargos trabalhistas, previdenciários, fiscais e comerciais.'}`);
+    P.cl(`**Da contratante:** ${has(e.obrigContratante) ? e.obrigContratante.trim() : 'prestar as informações necessárias; acompanhar e fiscalizar a execução; efetuar o pagamento no prazo; notificar a contratada das falhas encontradas.'}`);
+    P.sec('Sanções');
+    P.cl(`O descumprimento sujeita a contratada às sanções dos arts. 155 a 163 da Lei nº 14.133/2021, inclusive multa de até ${num(e.multa) || 10}% sobre o valor da contratação ou da parcela inadimplida, assegurados o contraditório e a ampla defesa.`);
+  }
+
+  P.raw({ t: 'p', text: `${cfg.cidade}, ${dataExtenso(d.data)}.`, align: 'right' });
+  P.raw({ t: 'sig', nome: ph(d.responsavel, 'nome do responsável'), cargo: ph(d.cargo, 'cargo'), caps: true });
+  return { id: 'tr', titulo: 'Termo de Referência', sigla: 'TR', fund: 'art. 6º, XXIII', blocks: P.blocks };
+}
+
+/* ============ Termo de Responsabilidade na Gestão e Fiscalização (modelo Iacanga) ============ */
+function docDesignacao(p, cfg, a) {
+  const e = p.execucao, d = p.demanda, B = [];
+  const dec = decretoGestao(cfg), ente = cfg.ente || ('Município de ' + cfg.cidade);
+  const lista = itens => itens.forEach((t, i) => B.push({ t: 'p', text: `${ROMANOS[i]} – ${t}${i < itens.length - 2 ? ';' : i === itens.length - 2 ? '; e' : '.'}` }));
+  B.push({ t: 'title', text: 'TERMO DE RESPONSABILIDADE NA GESTÃO E FISCALIZAÇÃO DO CONTRATO', under: true });
+  if (has(d.solicitacao)) B.push({ t: 'p', text: `**Solicitação:** ${semPonto(d.solicitacao)}.` });
+  if (has(p.numero)) B.push({ t: 'p', text: `**Processo:** ${p.numero}.` });
+  B.push({ t: 'p', text: `**Objeto:** ${semPonto(ph(p.objeto.resumo, 'objeto'))}.` });
+  B.push({ t: 'p', text: `Considerando a celebração do Contrato que será firmado entre o ${ente}/${cfg.uf || 'SP'} e a empresa a ser contratada, é imperioso nomear servidores para o desempenho das funções de Gestor e Fiscais de Contrato, conforme previsto na Lei nº 14.133/2021, arts. 7º, § 3º, e 117${dec ? ', e no ' + dec : ''}.` });
+  B.push({ t: 'p', text: 'Por meio do presente Termo, os servidores abaixo nominados ratificam sua ciência e anuência quanto às funções assumidas e às responsabilidades delas decorrentes, apondo suas assinaturas ao final.' });
+  const nomeado = (papel, nome, cargo, cpf) => B.push({ t: 'p', text: `Fica nomeado(a), como ${papel} do Contrato a ser celebrado, o(a) servidor(a) ${pessoa(nome, cargo, cpf, 'nome do ' + papel.toLowerCase())}.` });
+  const temSet = has(e.fiscalSet), temAdm = has(e.fiscalAdm), r = art => refDec(cfg, art);
+  let k = 1;
+  B.push({ t: 'sub', text: `${k++} – DO GESTOR` });
+  nomeado('Gestor', e.gestor, e.gestorCargo, e.gestorCpf);
+  B.push({ t: 'sub', text: 'DAS RESPONSABILIDADES DO GESTOR' });
+  B.push({ t: 'p', text: 'O Gestor do Contrato está ciente e de acordo com suas atribuições, que são:' });
+  lista([
+    `coordenar as atividades relacionadas às fiscalizações técnica, administrativa e setorial (esta, se for o caso)${r('de que tratam os incisos II, III e IV do art. 15')}`,
+    'acompanhar os registros das ocorrências relacionadas à execução do Contrato e as medidas adotadas, informando à autoridade superior aquelas que ultrapassarem a sua competência',
+    'acompanhar a manutenção das condições de habilitação da contratada, para fins de empenho de despesa e de pagamento, anotando os problemas que obstem o fluxo normal da liquidação e do pagamento da despesa no relatório de riscos eventuais',
+    'coordenar a rotina de acompanhamento e de fiscalização do Contrato, cujo histórico de gerenciamento deverá conter todos os registros formais da execução, a exemplo da ordem de serviço, do registro de ocorrências, das alterações e das prorrogações contratuais, e elaborar relatório destinado à verificação da necessidade de adequações do Contrato para fins de atendimento da finalidade da Administração',
+    `coordenar os atos preparatórios à instrução processual e ao envio da documentação pertinente ao setor de Contratos, objetivando a formalização dos procedimentos${r('de que trata o inciso I do art. 15')}`,
+    'elaborar o relatório final de que trata a alínea "d" do inciso VI do § 3º do art. 174 da Lei nº 14.133/2021, fazendo uso das informações obtidas durante a execução do Contrato',
+    'coordenar a atualização contínua do relatório de riscos, quando couber, durante a gestão do Contrato, com apoio dos Fiscais Técnico, Administrativo e Setorial (este, se for o caso)',
+    'emitir documento comprobatório da avaliação realizada pelos fiscais quanto ao cumprimento de obrigações assumidas pela contratada, com menção ao seu desempenho na execução contratual, baseado em indicadores objetivamente definidos e aferidos, e a eventuais penalidades aplicadas',
+    `realizar o recebimento definitivo do objeto do Contrato${r('referido no art. 22')}, mediante termo detalhado que comprove o atendimento das exigências contratuais`,
+    'tomar providências para a formalização de processo administrativo de responsabilização para fins de aplicação de sanções, a ser conduzido pela comissão de que trata o art. 158 da Lei nº 14.133/2021, ou pelo agente ou setor competente, conforme o caso'
+  ]);
+  B.push({ t: 'sub', text: `${k++} – DO FISCAL TÉCNICO` });
+  nomeado('Fiscal Técnico', e.fiscal, e.fiscalCargo, e.fiscalCpf);
+  B.push({ t: 'sub', text: 'DA RESPONSABILIDADE DA FISCALIZAÇÃO TÉCNICA' });
+  B.push({ t: 'p', text: 'O Fiscal Técnico do Contrato está ciente e de acordo com suas atribuições, que são:' });
+  lista([
+    'prestar apoio técnico e operacional ao Gestor do Contrato, com informações pertinentes às suas competências',
+    'anotar, no histórico de gerenciamento do Contrato, todas as ocorrências relacionadas à execução do Contrato, com a descrição do que for necessário para a regularização das faltas ou dos defeitos observados',
+    'emitir notificações para a correção de rotinas ou de qualquer inexatidão ou irregularidade constatada, com a definição de prazo para a correção',
+    'informar ao Gestor do Contrato, em tempo hábil, a situação que demandar decisão ou adoção de medidas que ultrapassem a sua competência, para que adote as medidas necessárias e saneadoras, se for o caso',
+    'comunicar imediatamente ao Gestor do Contrato quaisquer ocorrências que possam inviabilizar a execução do Contrato nas datas estabelecidas',
+    'fiscalizar a execução do Contrato, para que sejam cumpridas as condições estabelecidas, de modo a assegurar os melhores resultados para a Administração, com a conferência das notas fiscais e das documentações exigidas para o pagamento e, após o ateste, que certifica o recebimento provisório, encaminhar ao Gestor do Contrato para ratificação',
+    'comunicar ao Gestor do Contrato, em tempo hábil, o término do Contrato sob sua responsabilidade, com vistas à renovação tempestiva ou à prorrogação contratual',
+    `participar da atualização do relatório de riscos durante a fase de gestão do Contrato, em conjunto com os demais fiscais${r(', conforme o disposto no inciso VII do art. 16')}`,
+    `auxiliar o Gestor do Contrato, com as informações necessárias, na elaboração do documento comprobatório da avaliação realizada na fiscalização do cumprimento de obrigações assumidas pela contratada${r(', conforme o disposto no inciso VIII do art. 16')}`,
+    `realizar o recebimento provisório do objeto do Contrato${r('referido no art. 20')}, mediante termo detalhado que comprove o cumprimento das exigências de caráter técnico`
+  ]);
+  if (temAdm) {
+    B.push({ t: 'sub', text: `${k++} – DO FISCAL ADMINISTRATIVO` });
+    nomeado('Fiscal Administrativo', e.fiscalAdm, e.fiscalAdmCargo, e.fiscalAdmCpf);
+    B.push({ t: 'sub', text: 'DA RESPONSABILIDADE DA FISCALIZAÇÃO ADMINISTRATIVA' });
+    B.push({ t: 'p', text: 'O Fiscal Administrativo do Contrato está ciente e de acordo com suas atribuições, que são:' });
+    lista([
+      'prestar apoio técnico e operacional ao Gestor do Contrato, com a realização das tarefas ligadas ao controle dos prazos relacionados ao Contrato e à formalização de apostilamentos e de termos aditivos, ao acompanhamento do empenho e do pagamento e ao acompanhamento de garantias e glosas',
+      'verificar a manutenção das condições de habilitação da contratada, com a solicitação dos documentos comprobatórios pertinentes, caso necessário',
+      'examinar a regularidade no recolhimento das contribuições fiscais, trabalhistas e previdenciárias',
+      'atuar tempestivamente na solução de eventuais problemas relacionados ao descumprimento das obrigações contratuais, reportando-se ao Gestor do Contrato, a fim de que este tome as providências cabíveis',
+      `participar da atualização do relatório de riscos durante a fase de gestão do Contrato, em conjunto com os demais fiscais${r(', conforme o disposto no inciso VII do art. 16')}`,
+      `auxiliar o Gestor do Contrato, com as informações necessárias, na elaboração do documento comprobatório da avaliação realizada na fiscalização do cumprimento de obrigações assumidas pela contratada${r(', conforme o disposto no inciso VIII do art. 16')}`,
+      `realizar o recebimento provisório do objeto do Contrato${r('referido no art. 20')}, mediante termo detalhado que comprove o cumprimento das exigências de caráter administrativo`
+    ]);
+  }
+  if (temSet) {
+    B.push({ t: 'sub', text: `${k++} – DO FISCAL SETORIAL` });
+    nomeado('Fiscal Setorial', e.fiscalSet, e.fiscalSetCargo, e.fiscalSetCpf);
+    B.push({ t: 'sub', text: 'DA RESPONSABILIDADE DA FISCALIZAÇÃO SETORIAL' });
+    B.push({ t: 'p', text: 'O Fiscal Setorial do Contrato está ciente e de acordo com suas atribuições, que são:' });
+    B.push({ t: 'p', text: `I – exercer as atribuições de fiscalização técnica e administrativa na unidade em que o objeto for executado${r('de que tratam o art. 17 e o art. 18')}, reportando-se ao Gestor do Contrato.` });
+  }
+  B.push({ t: 'p', text: `${cfg.cidade}, ${dataExtenso(d.data)}.`, align: 'right' });
+  B.push({ t: 'sig', nome: `${ph(e.gestor, 'nome do gestor')} – Gestor` });
+  B.push({ t: 'sig', nome: `${ph(e.fiscal, 'nome do fiscal técnico')} – Fiscal Técnico` });
+  if (temAdm) B.push({ t: 'sig', nome: `${e.fiscalAdm.trim()} – Fiscal Administrativo` });
+  if (temSet) B.push({ t: 'sig', nome: `${e.fiscalSet.trim()} – Fiscal Setorial` });
+  return { id: 'designacao', titulo: 'Termo de Responsabilidade na Gestão e Fiscalização', sigla: 'TRS', fund: 'arts. 7º e 117', blocks: B };
+}
+const ROMANOS = ['I', 'II', 'III', 'IV', 'V', 'VI', 'VII', 'VIII', 'IX', 'X', 'XI', 'XII'];
+
 function docDFD(p, cfg, a) {
   const d = p.demanda;
   return { id: 'dfd', titulo: 'Documento de Formalização de Demanda', sigla: 'DFD', fund: 'art. 12, VII, e art. 72, I', blocks: [
@@ -506,48 +1015,10 @@ function docDFD(p, cfg, a) {
     { t: 'h', text: '4. Quantidades e estimativa preliminar' }, itensTabela(p, true),
     { t: 'h', text: '5. Previsão no Plano de Contratações Anual' }, { t: 'p', text: pcaTexto(d) },
     { t: 'h', text: '6. Prazo e prioridade' }, { t: 'p', text: `Prioridade ${({ alta: 'alta', media: 'média', baixa: 'baixa' })[d.prioridade] || 'média'}. Data pretendida para o início do fornecimento ou da execução: ${fmtData(d.dataPretendida) || '⟦data pretendida⟧'}.` },
-    { t: 'h', text: '7. Indicação de gestor e fiscal' }, { t: 'p', text: `Gestor: ${ph(p.execucao.gestor, 'nome do gestor')}. Fiscal: ${ph(p.execucao.fiscal, 'nome do fiscal')}.` },
+    { t: 'h', text: '7. Indicação de gestor e fiscal' }, { t: 'p', text: `Gestor: ${ph(p.execucao.gestor, 'nome do gestor')}. Fiscal técnico: ${ph(p.execucao.fiscal, 'nome do fiscal')}.${has(p.execucao.fiscalAdm) ? ' Fiscal administrativo: ' + p.execucao.fiscalAdm + '.' : ''}` },
     { t: 'p', text: `${cfg.cidade}, ${dataExtenso(d.data)}.`, align: 'right' },
     { t: 'sig', nome: ph(d.responsavel, 'nome do responsável'), cargo: `${ph(d.cargo, 'cargo')} — ${ph(d.unidade, 'unidade')}` }
   ] };
-}
-
-function docETP(p, cfg, a) {
-  const o = p.objeto, d = p.demanda;
-  const sec = (n, tit, val, obrig, label) => {
-    const out = [{ t: 'h', text: `${n}. ${tit}${obrig ? ' *' : ''}` }];
-    if (has(val)) out.push({ t: 'p', text: val });
-    else if (obrig) out.push({ t: 'p', text: '⟦' + label + '⟧' });
-    else if (a.simples) out.push({ t: 'p', text: 'Não identificado pela unidade requisitante nesta fase.' });
-    else out.push({ t: 'p', text: 'Elemento não aplicável à presente contratação. ⟦justificar a não inclusão — art. 18, §2º⟧' });
-    return out;
-  };
-  const parc = { itens: 'Adota-se o parcelamento por itens.', lotes: 'Adota-se o parcelamento por lotes.', global: 'Adota-se o julgamento global, sem parcelamento.' }[o.parcelamento] || '';
-  const blocks = [
-    { t: 'title', text: 'ESTUDO TÉCNICO PRELIMINAR', sub: 'Lei nº 14.133/2021, art. 18, §§ 1º e 2º' },
-    { t: 'kv', rows: [['Processo', numProc(p, a, cfg)], ['Objeto', ph(o.resumo, 'objeto')], ['Natureza', NAT[o.natureza].l], ['Unidade requisitante', ph(d.unidade, 'unidade')]] },
-    { t: 'note', text: 'Itens marcados com * são de inclusão obrigatória (art. 18, §2º). A ausência dos demais exige justificativa.' }
-  ];
-  if (a.etpFacultativo && !a.simples) blocks.push({ t: 'note', text: 'Na hipótese de contratação adotada, o ETP é facultativo pelo regulamento federal (IN SEGES/ME nº 58/2022). Mantido em forma simplificada para instrução do processo.' });
-  blocks.push(
-    ...sec(1, 'Descrição da necessidade', [d.necessidade, d.consequencias].filter(has).join(' '), true, 'descrição da necessidade'),
-    { t: 'h', text: '2. Previsão no plano de contratações anual' }, { t: 'p', text: pcaTexto(d) },
-    ...sec(3, 'Requisitos da contratação', o.requisitos, false),
-    { t: 'h', text: '4. Estimativa das quantidades *' }, { t: 'p', text: ph(o.memoriaQtd, 'memória de cálculo das quantidades') }, itensTabela(p, false),
-    ...sec(5, 'Levantamento de mercado e justificativa da solução escolhida', o.alternativas, false),
-    { t: 'h', text: '6. Estimativa do valor da contratação *' },
-    { t: 'p', text: `O valor estimado é de **${fmtBRL(a.est)}**, apurado pela ${p.pesquisa.metodo === 'media' ? 'média' : p.pesquisa.metodo === 'menor' ? 'menor valor' : 'mediana'} dos preços válidos coletados, conforme o relatório de pesquisa de preços anexo, nos termos do art. 23.` },
-    ...sec(7, 'Descrição da solução como um todo', [o.solucao, p.execucao.garantia, p.execucao.assistencia].filter(has).join(' '), false),
-    { t: 'h', text: '8. Justificativa para o parcelamento ou não *' }, { t: 'p', text: p.itens.length === 1 && !has(o.justParcelamento) ? 'Objeto composto por item único, sem possibilidade de parcelamento.' : o.parcelamento === 'itens' && !has(o.justParcelamento) ? 'Adota-se o parcelamento por itens, regra do art. 40, V, "b", da Lei nº 14.133/2021, para que cada item seja disputado separadamente, ampliando a competição.' : `${parc} ${ph(o.justParcelamento, 'justificativa do parcelamento')}${o.parcelamento === 'lotes' ? ' ' + composicaoLotes(p) : ''}` },
-    ...sec(9, 'Resultados pretendidos', o.resultados, false),
-    ...sec(10, 'Providências prévias ao contrato', o.providencias, false),
-    ...sec(11, 'Contratações correlatas ou interdependentes', o.correlatas, false),
-    ...sec(12, 'Impactos ambientais e medidas mitigadoras', o.impactos, false),
-    ...sec(13, 'Posicionamento conclusivo', o.conclusao, true, 'posicionamento conclusivo sobre a adequação da contratação'),
-    { t: 'p', text: `${cfg.cidade}, ${dataExtenso(d.data)}.`, align: 'right' },
-    { t: 'sig', nome: ph(d.responsavel, 'nome do responsável'), cargo: `${ph(d.cargo, 'cargo')} — equipe de planejamento` }
-  );
-  return { id: 'etp', titulo: 'Estudo Técnico Preliminar', sigla: 'ETP', fund: 'art. 18, §1º', blocks };
 }
 
 function docRiscos(p, cfg, a) {
@@ -560,55 +1031,6 @@ function docRiscos(p, cfg, a) {
     { t: 'p', text: `${cfg.cidade}, ${dataExtenso(p.demanda.data)}.`, align: 'right' },
     { t: 'sig', nome: ph(p.demanda.responsavel, 'nome do responsável'), cargo: ph(p.demanda.cargo, 'cargo') }
   ] };
-}
-
-function docTR(p, cfg, a) {
-  const o = p.objeto, e = p.execucao, d = p.demanda;
-  const crit = a.escolhida && a.escolhida.grupo === 'Licitação' ? criterioPadrao(p, a.escolhida, a.est, cfg) : 'menor preço';
-  const selecao = a.simples
-    ? `A forma de seleção do fornecedor será definida pela ${setorLic(cfg)}, nos termos da Lei nº 14.133/2021.`
-    : a.escolhida
-    ? (a.direta
-      ? `Contratação direta com fundamento no ${a.escolhida.base} da Lei nº 14.133/2021 (${a.escolhida.titulo.toLowerCase()}).${['75-I', '75-II'].includes(a.escolhida.id) ? ' A contratação será precedida de aviso em sítio eletrônico oficial pelo prazo mínimo de 3 dias úteis, para obtenção de propostas adicionais, selecionando-se a proposta de menor preço (art. 75, §3º).' : ''}`
-      : `Licitação na modalidade ${a.escolhida.titulo.toLowerCase()}, ${cfg.ate20mil ? 'preferencialmente' : ''} na forma eletrônica, critério de julgamento ${crit}, ${({ itens: 'por item', lotes: 'por lote', global: 'global' })[o.parcelamento] || 'por item'}.`)
-    : '⟦forma de seleção do fornecedor⟧';
-  const habil = 'Exigem-se, do fornecedor selecionado: habilitação jurídica (art. 66); regularidade fiscal, social e trabalhista (art. 68), com prova de regularidade perante a Fazenda federal e a Seguridade Social, o FGTS, a Justiça do Trabalho (CNDT) e as Fazendas estadual e municipal; e declaração de cumprimento do art. 7º, XXXIII, da Constituição.' + (has(p.disputa.habTecnica) ? ` Qualificação técnica: ${p.disputa.habTecnica}` : '') + (has(p.disputa.habEconomica) ? ` Qualificação econômico-financeira: ${p.disputa.habEconomica}` : '');
-  const blocks = [
-    { t: 'title', text: 'TERMO DE REFERÊNCIA', sub: 'Lei nº 14.133/2021, art. 6º, XXIII, e art. 40, §1º' },
-    { t: 'kv', rows: [['Processo', numProc(p, a, cfg)], ['Unidade requisitante', ph(d.unidade, 'unidade')]] },
-    { t: 'h', text: '1. Definição do objeto' },
-    { t: 'p', text: `${ph(o.resumo, 'objeto')}, conforme especificações e quantidades abaixo. Natureza: ${NAT[o.natureza].l.toLowerCase()}${o.continuo ? ', de caráter continuado' : ''}.` },
-    itensTabela(p, false),
-    { t: 'p', text: o.continuo
-      ? `Vigência de ${ph(e.vigenciaTexto || (o.vigenciaMeses ? o.vigenciaMeses + ' meses' : ''), 'vigência')}, prorrogável nos termos dos arts. 106 e 107 da Lei nº 14.133/2021.`
-      : `Prazo de execução: ${ph(e.prazo, 'prazo de entrega ou execução')}.${has(e.vigenciaTexto) ? ' Vigência: ' + e.vigenciaTexto + '.' : ''}` },
-    { t: 'h', text: '2. Fundamentação da contratação' },
-    { t: 'p', text: `A contratação fundamenta-se no Estudo Técnico Preliminar constante dos autos, que demonstra a necessidade: ${ph(d.necessidade, 'necessidade')}` },
-    { t: 'h', text: '3. Descrição da solução como um todo' }, { t: 'p', text: ph(o.solucao, 'descrição da solução, considerado o ciclo de vida do objeto') },
-    { t: 'h', text: '4. Requisitos da contratação' }, { t: 'p', text: ph(o.requisitos, 'requisitos técnicos, de sustentabilidade e de qualidade') },
-    { t: 'h', text: '5. Modelo de execução do objeto' },
-    { t: 'p', text: `Local: ${ph(e.local, 'local de entrega ou execução')}. Prazo: ${ph(e.prazo, 'prazo')}.` },
-    { t: 'p', text: `Recebimento: ${ph(e.recebimento, 'regras de recebimento provisório e definitivo (art. 140)')}` }
-  ];
-  if (o.natureza === 'compra') blocks.push({ t: 'p', text: `Garantia e assistência técnica: ${has(e.garantia) || has(e.assistencia) ? [e.garantia, e.assistencia].filter(has).join(' ') : 'não se exige garantia além da legal (Código de Defesa do Consumidor).'}` });
-  blocks.push(
-    { t: 'h', text: '6. Modelo de gestão do contrato' },
-    { t: 'p', text: `A execução será acompanhada e fiscalizada nos termos do art. 117, pelo gestor ${ph(e.gestor, 'nome do gestor')} e pelo fiscal ${ph(e.fiscal, 'nome do fiscal')}, que registrarão as ocorrências e determinarão a regularização de falhas, informando a autoridade superior do que exceder sua competência.` },
-    { t: 'h', text: '7. Critérios de medição e de pagamento' },
-    { t: 'p', text: `O pagamento será efetuado em até ${num(e.pagamentoDias) || 30} dias contados do recebimento definitivo e do atesto da nota fiscal pelo fiscal, mediante comprovação da regularidade fiscal do contratado.${has(e.reajuste) ? ' Os preços poderão ser reajustados após 12 meses da data do orçamento estimado, pelo índice ' + e.reajuste + ' (art. 25, §7º).' : ''}` },
-    { t: 'h', text: '8. Forma e critérios de seleção do fornecedor' }, { t: 'p', text: selecao }, ...(textoJulgamento(p) ? [{ t: 'p', text: textoJulgamento(p) }] : []), { t: 'p', text: habil },
-    { t: 'h', text: '9. Estimativa do valor da contratação' },
-    { t: 'p', text: `Valor total estimado de **${fmtBRL(a.est)}**, conforme relatório de pesquisa de preços, que contém os preços unitários referenciais e a memória de cálculo.` },
-    { t: 'h', text: '10. Adequação orçamentária' }, { t: 'p', text: a.simples ? 'A dotação orçamentária será indicada pela unidade de contabilidade.' : `A despesa correrá à conta da dotação: ${dotacaoTexto(p.orcamento)}.` },
-    { t: 'h', text: '11. Obrigações das partes' },
-    { t: 'p', text: `Do contratado: ${has(e.obrigContratada) ? e.obrigContratada : 'executar o objeto conforme este termo; reparar ou substituir, às suas expensas, o que for recusado; manter as condições de habilitação durante toda a execução; responder pelos encargos trabalhistas, previdenciários, fiscais e comerciais.'}` },
-    { t: 'p', text: `Do contratante: ${has(e.obrigContratante) ? e.obrigContratante : 'prestar as informações necessárias; acompanhar e fiscalizar a execução; efetuar o pagamento no prazo; notificar o contratado de falhas encontradas.'}` },
-    { t: 'h', text: '12. Sanções' },
-    { t: 'p', text: `O descumprimento sujeita o contratado às sanções dos arts. 155 a 163 da Lei nº 14.133/2021, inclusive multa de até ${num(e.multa) || 10}% sobre o valor do contrato ou da parcela inadimplida, assegurados o contraditório e a ampla defesa.` },
-    { t: 'p', text: `${cfg.cidade}, ${dataExtenso(d.data)}.`, align: 'right' },
-    { t: 'sig', nome: ph(d.responsavel, 'nome do responsável'), cargo: `${ph(d.cargo, 'cargo')} — ${ph(d.unidade, 'unidade')}` }
-  );
-  return { id: 'tr', titulo: 'Termo de Referência', sigla: 'TR', fund: 'art. 6º, XXIII', blocks };
 }
 
 function docPrecos(p, cfg, a) {
@@ -737,21 +1159,6 @@ function docJuridico(p, cfg, a, pecas) {
   ] };
 }
 
-function docDesignacao(p, cfg, a) {
-  const e = p.execucao;
-  return { id: 'designacao', titulo: a.simples ? 'Termo de Responsabilidade (gestor e fiscal)' : 'Designação de Gestor e Fiscal', sigla: a.simples ? 'TRS' : 'DGF', fund: 'arts. 7º e 117', blocks: [
-    { t: 'title', text: 'TERMO DE DESIGNAÇÃO E RESPONSABILIDADE DE GESTOR E FISCAL', sub: 'Lei nº 14.133/2021, arts. 7º e 117' },
-    { t: 'p', text: `${a.simples ? `O(A) ${ph(p.demanda.secretaria, 'secretaria')} indica` : 'A autoridade competente designa'}, para a contratação objeto do Processo Administrativo nº ${numProc(p, a, cfg)} (${ph(p.objeto.resumo, 'objeto')}):` },
-    { t: 'kv', rows: [['Gestor', `${ph(e.gestor, 'nome do gestor')} — ${ph(e.gestorCargo, 'cargo')}`], ['Fiscal', `${ph(e.fiscal, 'nome do fiscal')} — ${ph(e.fiscalCargo, 'cargo')}`]] },
-    { t: 'p', text: 'Compete ao fiscal acompanhar a execução, anotar em registro próprio as ocorrências, determinar a regularização de falhas e informar ao gestor, em tempo hábil, o que exceder sua competência (art. 117, §§ 1º e 2º). Compete ao gestor coordenar a gestão do contrato, acompanhar prazos, instruir aditivos e propor a aplicação de sanções.' },
-    { t: 'p', text: 'Os designados declaram ter ciência das atribuições, que não mantêm vínculo de parentesco, técnico, comercial, econômico, financeiro, trabalhista ou civil com o contratado ou seus dirigentes (art. 7º, III, e art. 9º, §1º), e que comunicarão de imediato qualquer impedimento superveniente.' },
-    { t: 'p', text: `${cfg.cidade}, ____ de ______________ de ${cfg.valores.ano}.`, align: 'right' },
-    a.simples ? { t: 'sig', nome: ph(p.demanda.responsavel, 'nome do responsável'), cargo: `${ph(p.demanda.cargo, 'cargo')} — ${ph(p.demanda.secretaria, 'secretaria')}` } : { t: 'sig', nome: ph(cfg.autoridade.nome, 'nome da autoridade competente'), cargo: cfg.autoridade.cargo },
-    { t: 'sig', nome: ph(e.gestor, 'nome do gestor'), cargo: 'Gestor — ciente' },
-    { t: 'sig', nome: ph(e.fiscal, 'nome do fiscal'), cargo: 'Fiscal — ciente' }
-  ] };
-}
-
 function docEdital(p, cfg, a) {
   const h = a.escolhida, d = p.disputa, crit = criterioPadrao(p, h, a.est, cfg);
   const mod = h.titulo.toUpperCase(), srp = p.situacao.srp;
@@ -789,7 +1196,7 @@ function docEdital(p, cfg, a) {
     { t: 'p', text: '6.1. Será exigida, apenas do licitante vencedor (art. 63, II), a documentação de habilitação jurídica (art. 66) e de regularidade fiscal, social e trabalhista (art. 68).' },
     { t: 'p', text: `6.2. Qualificação técnica (art. 67): ${has(d.habTecnica) ? d.habTecnica : 'não exigida, por se tratar de objeto de baixa complexidade. ⟦confirmar⟧'}` },
     { t: 'p', text: `6.3. Qualificação econômico-financeira (art. 69): ${has(d.habEconomica) ? d.habEconomica : 'não exigida. ⟦confirmar⟧'}` },
-    ...(d.visita ? [{ t: 'p', text: '6.4. A vistoria prévia é facultativa e pode ser substituída por declaração de pleno conhecimento das condições do local (art. 63, §§ 2º e 3º).' }] : []),
+    ...((d.vistoria || 'nao') !== 'nao' ? [{ t: 'p', text: d.vistoria === 'obrigatoria' ? '6.4. A vistoria prévia é obrigatória, conforme o Termo de Referência (art. 63, §2º).' : '6.4. A vistoria prévia é facultativa e pode ser substituída por declaração de pleno conhecimento das condições do local (art. 63, §§ 2º e 3º).' }] : []),
     { t: 'h', text: '7. DA IMPUGNAÇÃO E DOS ESCLARECIMENTOS' },
     { t: 'p', text: '7.1. Qualquer pessoa pode impugnar este edital ou pedir esclarecimentos até 3 (três) dias úteis antes da abertura da sessão. A resposta será divulgada em até 3 (três) dias úteis, limitada ao último dia útil anterior à abertura (art. 164).' },
     { t: 'h', text: '8. DOS RECURSOS' },
@@ -834,7 +1241,7 @@ function docContrato(p, cfg, a) {
     ...cl('OITAVA', 'DA GARANTIA', num(e.garantiaContratual) ? `A CONTRATADA prestará garantia de ${e.garantiaContratual}% do valor do contrato, em uma das modalidades do art. 96, §1º.` : 'Não será exigida garantia contratual.'),
     ...cl('NONA', 'DAS OBRIGAÇÕES DA CONTRATANTE', has(e.obrigContratante) ? e.obrigContratante : 'Prestar as informações necessárias; acompanhar e fiscalizar a execução; efetuar o pagamento no prazo; notificar a CONTRATADA de falhas encontradas.'),
     ...cl('DÉCIMA', 'DAS OBRIGAÇÕES DA CONTRATADA', has(e.obrigContratada) ? e.obrigContratada : 'Executar o objeto conforme o termo de referência; reparar ou substituir, às suas expensas, o que for recusado; manter todas as condições de habilitação durante a execução (art. 92, XVI); responder pelos encargos trabalhistas, previdenciários, fiscais e comerciais.'),
-    ...cl('DÉCIMA PRIMEIRA', 'DA GESTÃO E DA FISCALIZAÇÃO', `A execução será acompanhada pelo gestor ${ph(e.gestor, 'gestor')} e pelo fiscal ${ph(e.fiscal, 'fiscal')}, nos termos do art. 117.`),
+    ...cl('DÉCIMA PRIMEIRA', 'DA GESTÃO E DA FISCALIZAÇÃO', `A execução será acompanhada pelo gestor ${ph(e.gestor, 'gestor')}, pelo fiscal técnico ${ph(e.fiscal, 'fiscal')}${has(e.fiscalAdm) ? ' e pelo fiscal administrativo ' + e.fiscalAdm : ''}, nos termos do art. 117${decretoGestao(cfg) ? ' e do ' + decretoGestao(cfg) : ''}.`),
     ...cl('DÉCIMA SEGUNDA', 'DAS INFRAÇÕES E SANÇÕES', `Aplicam-se os arts. 155 a 163 da Lei nº 14.133/2021, com multa de até ${num(e.multa) || 10}% do valor do contrato, assegurados o contraditório e a ampla defesa.`),
     ...cl('DÉCIMA TERCEIRA', 'DA EXTINÇÃO', 'O contrato poderá ser extinto nas hipóteses dos arts. 137 a 139, com as consequências do art. 139.'),
     ...cl('DÉCIMA QUARTA', 'DAS ALTERAÇÕES', 'O contrato poderá ser alterado nos casos do art. 124, observados os limites do art. 125.'),
@@ -974,8 +1381,8 @@ function paraDocx(D, pecas, p, cfg, opts = {}) {
   const { Document, Paragraph, TextRun, Table, TableRow, TableCell, WidthType, AlignmentType, BorderStyle, ShadingType, Header, Footer, PageNumber, ImageRun, PageOrientation, VerticalAlign, PageBreak,
     UnderlineType, HorizontalPositionRelativeFrom, HorizontalPositionAlign, VerticalPositionRelativeFrom, VerticalPositionAlign, TextWrappingType } = D;
   const FONT = 'Arial';
-  const runs = (s, o = {}) => textoParaSegmentos(s).map(g => new TextRun({ text: g.t, bold: !!(g.b || o.bold), italics: !!o.italics, size: o.size || 22, font: FONT, highlight: g.ph ? 'yellow' : undefined, allCaps: !!o.caps }));
-  const P = (s, o = {}) => new Paragraph({ children: runs(s, o), alignment: o.align === 'right' ? AlignmentType.RIGHT : o.align === 'center' ? AlignmentType.CENTER : o.align === 'left' ? AlignmentType.LEFT : AlignmentType.JUSTIFIED, spacing: { before: o.before || 0, after: o.after == null ? 120 : o.after, line: 288 }, indent: o.indent ? { left: o.indent, hanging: o.hanging || 0 } : undefined, keepNext: !!o.keepNext });
+  const runs = (s, o = {}) => textoParaSegmentos(s).map(g => new TextRun({ text: g.t, bold: !!(g.b || o.bold), italics: !!o.italics, size: o.size || 24, font: FONT, highlight: g.ph ? 'yellow' : undefined, allCaps: !!o.caps, underline: o.under ? {} : undefined }));
+  const P = (s, o = {}) => new Paragraph({ children: [...(o.pre || []), ...runs(s, o)], alignment: o.align === 'right' ? AlignmentType.RIGHT : o.align === 'center' ? AlignmentType.CENTER : o.align === 'left' ? AlignmentType.LEFT : AlignmentType.JUSTIFIED, spacing: { before: o.before || 0, after: o.after == null ? 120 : o.after, line: 276 }, indent: o.indent ? { left: o.indent, hanging: o.hanging || 0 } : undefined, keepNext: !!o.keepNext, shading: o.shade ? { fill: o.shade, type: ShadingType.CLEAR, color: 'auto' } : undefined, border: o.box ? { top: o.box, bottom: o.box, left: o.box, right: o.box } : undefined });
   const border = { style: BorderStyle.SINGLE, size: 4, color: '8A9AA0' };
   const borders = { top: border, bottom: border, left: border, right: border };
 
@@ -983,7 +1390,7 @@ function paraDocx(D, pecas, p, cfg, opts = {}) {
     const tot = cols.reduce((x, c) => x + c.w, 0);
     const ws = cols.map(c => Math.floor(larg * c.w / tot));
     ws[ws.length - 1] += larg - ws.reduce((x, y) => x + y, 0);
-    const sz = small ? 16 : 19;
+    const sz = small ? 16 : 20;
     const cel = (txt, i, o = {}) => new TableCell({ width: { size: ws[i], type: WidthType.DXA }, borders, verticalAlign: VerticalAlign.CENTER, shading: o.head ? { fill: 'E4ECEE', type: ShadingType.CLEAR, color: 'auto' } : undefined, margins: { top: 50, bottom: 50, left: 90, right: 90 }, children: [P(txt, { size: sz, bold: o.head, align: 'left', after: 0 })] });
     const trs = semCab ? [] : [new TableRow({ tableHeader: true, children: cols.map((c, i) => cel(c.h, i, { head: true })) })];
     rows.forEach(r => trs.push(new TableRow({ cantSplit: true, children: r.map((x, i) => cel(x, i, { head: semCab && i === 0 })) })));
@@ -992,14 +1399,19 @@ function paraDocx(D, pecas, p, cfg, opts = {}) {
   }
 
   function corpo(doc) {
-    const larg = doc.landscape ? 16838 - 1134 * 2 : 11906 - 1701 - 1134;
+    const larg = doc.landscape ? 16838 - 1134 * 2 : 11906 - 1588 - 1134;
+    const caixa = { style: BorderStyle.SINGLE, size: 6, color: '404040', space: 2 };
     const out = [];
     doc.blocks.forEach(b => {
       switch (b.t) {
         case 'title':
-          out.push(P(b.text, { bold: true, align: 'center', size: 26, after: 40 }));
+          out.push(P(b.text, { bold: true, align: 'center', size: 24, under: b.under, after: b.sub ? 40 : 240 }));
           if (b.sub) out.push(P(b.sub, { align: 'center', size: 18, italics: true, after: 240 }));
           break;
+        case 'sec': out.push(P(b.text, { bold: true, align: 'left', size: 22, before: 160, after: 140, keepNext: true, shade: 'D9D9D9', box: caixa })); break;
+        case 'sub': out.push(P(b.text, { bold: true, align: 'left', before: 80, after: 80, keepNext: true })); break;
+        case 'cl': out.push(P(b.text, { pre: [new TextRun({ text: b.num + ' ', font: FONT, size: 24, bold: false })], indent: b.nivel === 2 ? 567 : undefined })); break;
+        case 'bul': out.push(P(b.text, { pre: [new TextRun({ text: '●\t', font: FONT, size: 18 })], indent: b.nivel === 2 ? 1134 : 709, hanging: 283, after: 60 })); break;
         case 'h': out.push(P(b.text, { bold: true, before: 200, after: 100, keepNext: true })); break;
         case 'p': out.push(P(b.text, { align: b.align })); break;
         case 'li': out.push(P(b.text, { indent: 567, hanging: 0 })); break;
@@ -1010,8 +1422,8 @@ function paraDocx(D, pecas, p, cfg, opts = {}) {
         case 'sig':
           out.push(P('', { after: 360 }));
           out.push(P('______________________________________', { align: 'center', after: 0 }));
-          out.push(P(b.nome, { align: 'center', bold: true, after: 0 }));
-          out.push(P(b.cargo, { align: 'center', size: 20, after: 200 }));
+          out.push(P(b.nome, { align: 'center', bold: true, caps: !!b.caps, after: b.cargo ? 0 : 200 }));
+          if (b.cargo) out.push(P(b.cargo, { align: 'center', size: 22, after: 200 }));
           break;
       }
     });
@@ -1055,11 +1467,11 @@ function paraDocx(D, pecas, p, cfg, opts = {}) {
   const sections = pecas.map(doc => ({
     properties: { page: doc.landscape
       ? { size: { width: 11906, height: 16838, orientation: PageOrientation.LANDSCAPE }, margin: { top: 1134, right: 1134, bottom: 1134, left: 1134, header: 567, footer: 567 } }
-      : { size: { width: 11906, height: 16838 }, margin: { top: 1418, right: 1134, bottom: 1134, left: 1701, header: 567, footer: 567 } } },
-    headers: { default: cabecalho(doc.landscape ? 16838 - 1134 * 2 : 11906 - 1701 - 1134) }, footers: { default: rodape() },
+      : { size: { width: 11906, height: 16838 }, margin: { top: 2126, right: 1134, bottom: 1418, left: 1588, header: 567, footer: 567 } } },
+    headers: { default: cabecalho(doc.landscape ? 16838 - 1134 * 2 : 11906 - 1588 - 1134) }, footers: { default: rodape() },
     children: corpo(doc)
   }));
-  return new Document({ creator: 'Licita IAC', title: pecas.length === 1 ? pecas[0].titulo : 'Processo ' + (p.numero || ''), styles: { default: { document: { run: { font: FONT, size: 22 } } } }, sections });
+  return new Document({ creator: 'Licita IAC', title: pecas.length === 1 ? pecas[0].titulo : 'Processo ' + (p.numero || ''), styles: { default: { document: { run: { font: FONT, size: 24 } } } }, sections });
 }
 
-if (typeof module !== 'undefined') module.exports = { numProc, setorLic, grupoLotes, textoJulgamento, exclusivosME, cfgPadrao, normalizarCfg, linhasCabecalho, brasaoURI, procExemplo, procVazio, normalizarProc, syncOrcs, setValorOrc, valorOrc, analisar, montarPecas, paraDocx, estat, estimativa, NAT, precoUnit, totalItem };
+if (typeof module !== 'undefined') module.exports = { extenso, reaisExtenso, mascaraCPF, paragrafos, Peca, numProc, setorLic, grupoLotes, textoJulgamento, exclusivosME, cfgPadrao, normalizarCfg, linhasCabecalho, brasaoURI, procExemplo, procVazio, normalizarProc, syncOrcs, setValorOrc, valorOrc, analisar, montarPecas, paraDocx, estat, estimativa, NAT, precoUnit, totalItem };

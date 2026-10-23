@@ -86,9 +86,11 @@ function trocarTexto(path, novo) {
 }
 
 /* Avisos de redação por etapa do modo Secretaria (para a conferência final) */
-const ETAPA_CAMPO = { 'demanda.necessidade': 's_porque', 'demanda.consequencias': 's_porque', 'objeto.resumo': 's_oque', 'objeto.requisitos': 's_oque',
+const ETAPA_CAMPO = { 'demanda.necessidade': 's_porque', 'demanda.consequencias': 's_porque', 'demanda.pcaJust': 's_porque', 'objeto.resumo': 's_oque',
+  'objeto.requisitos': 's_detalhe', 'objeto.especificacoes': 's_detalhe', 'execucao.metodologia': 's_entrega',
   'objeto.justParcelamento': 's_oque', 'objeto.memoriaQtd': 's_quanto', 'objeto.alternativas': 's_quanto', 'objeto.conclusao': 's_quanto',
-  'execucao.recebimento': 's_entrega', 'execucao.garantia': 's_entrega' };
+  'objeto.vantagens': 's_quanto', 'objeto.desvantagens': 's_quanto', 'objeto.justEscolha': 's_quanto',
+  'execucao.recebimento': 's_entrega', 'execucao.medicao': 's_entrega', 'execucao.garantia': 's_exig' };
 function avisosRedacao(p) {
   return camposRevisados(p).map(([path, tipo]) => {
     const ks = path.split('.'); let v = p; ks.forEach(k => { v = v == null ? v : v[k]; });
