@@ -75,6 +75,17 @@ function campo(lbl, path, o = {}) {
   else ctl = `<input id="${id}" type="${o.type || 'text'}" data-path="${path}"${o.type === 'number' ? ' data-type="num" step="any" inputmode="decimal"' : ''} value="${esc(v)}" placeholder="${esc(o.ph || '')}"${rr}>`;
   return `<div class="field${o.cls ? ' ' + o.cls : ''}"><label for="${id}">${lbl}${req}${art}</label>${ctl}${hint}</div>`;
 }
+const EXPLICA_LOTES = `<div class="ajuda explica">
+  <p><b>Por item:</b> cada item é uma disputa separada e pode ter um vencedor diferente. É a regra da lei (art. 40, V, "b") e do TCU (Súmula 247).</p>
+  <p><b>Por lote:</b> itens parecidos são agrupados e cada lote tem o seu vencedor, que fornece todos os itens daquele lote. Ex.: Lote 1, hortifrúti; Lote 2, carnes; Lote 3, laticínios. Use quando separar item por item prejudica a entrega ou o preço, e justifique.</p>
+  <p><b>Global:</b> uma única empresa leva tudo. Só quando o objeto não pode ser dividido (art. 40, §3º).</p>
+  <p class="ex">Por item ou por lote, cada vencedor assina o seu próprio contrato ou ata.</p></div>`;
+function confirmaExclusao() {
+  if (CONFIRMA !== 'proc') return '';
+  const p = R.proc, nome = p.objeto.resumo || (modo() === 'simples' ? 'este pedido' : 'este processo');
+  return `<div class="confirma-topo" role="alertdialog" aria-label="Confirmar exclusão"><span>Excluir <b>${esc(nome)}</b>? Não dá para desfazer. Se quiser guardar uma cópia, baixe antes o arquivo (.json) na última etapa.</span>
+    <span class="btns"><button class="btn small perigo" data-act="del-proc-sim">Excluir de vez</button><button class="btn small" data-act="cancela">Cancelar</button></span></div>`;
+}
 const bloco = (titulo, corpo, extra = '') => `<section class="bloco">${titulo ? `<h2>${titulo}${extra}</h2>` : ''}${corpo}</section>`;
 
 /* ---------- passos ---------- */
@@ -113,6 +124,7 @@ function renderAutos() {
     <label for="selProc">${simples ? 'Pedido' : 'Processo'}</label>
     <select id="selProc">${procs.map(p => `<option value="${p.id}"${p.id === ATIVO.proc ? ' selected' : ''}>${esc(nomeProc(p))}</option>`).join('')}</select>
     <button class="btn small pri" data-act="novo-proc">${simples ? 'Novo pedido' : 'Novo processo'}</button>
+    <button class="btn small" data-act="del-proc" title="Excluir ${simples ? 'o pedido' : 'o processo'} aberto">Excluir</button>
     <span class="sync${Store.modo === 'nuvem' ? ' on' : ''}" title="${Store.modo === 'nuvem' ? 'Salvo na sua conta, disponível em outros dispositivos' : 'Salvo só neste navegador. Use Exportar para guardar uma cópia.'}">${Store.modo === 'nuvem' ? 'salvo na conta' : 'salvo no navegador'}</span>`;
 }
 
@@ -135,7 +147,7 @@ function renderMain() {
   const banner = p.exemplo ? `<div class="banner"><span><b>Processo de exemplo.</b> Os dados são fictícios e servem para mostrar o funcionamento. Edite à vontade ou comece um novo.</span><button class="btn small" data-act="novo-proc">Começar processo em branco</button></div>` : '';
   const prev = i > 0 ? `<button class="btn" data-passo="${PASSOS[i - 1].id}">← ${PASSOS[i - 1].t}</button>` : '<span></span>';
   const next = i < PASSOS.length - 1 ? `<button class="btn pri" data-passo="${PASSOS[i + 1].id}">${PASSOS[i + 1].t} →</button>` : '';
-  $('#main').innerHTML = `${banner}<div class="head-passo"><span class="eyebrow">Etapa ${String(i).padStart(2, '0')} de ${PASSOS.length - 1}</span><h1>${s.t}</h1><p>${s.d}</p></div>${VIEWS[PASSO]()}<div class="nav-passo">${prev}${next}</div>`;
+  $('#main').innerHTML = `${confirmaExclusao()}${banner}<div class="head-passo"><span class="eyebrow">Etapa ${String(i).padStart(2, '0')} de ${PASSOS.length - 1}</span><h1>${s.t}</h1><p>${s.d}</p></div>${VIEWS[PASSO]()}<div class="nav-passo">${prev}${next}</div>`;
 }
 
 /* ---------- telas ---------- */
@@ -195,7 +207,7 @@ const VIEWS = {
     const nat = Object.entries(NAT).map(([k, v]) => [k, v.l]);
     const itens = p.itens.map((it, i) => `<div class="item"><div class="item-h"><span class="idx">Item ${i + 1}</span>${p.itens.length > 1 ? `<button class="btn ghost small" data-act="del-item" data-i="${i}" style="margin-left:auto">Remover item</button>` : ''}</div>
       ${campo('Especificação', `proc.itens.${i}.desc`, { type: 'textarea', rows: 2, req: true, hint: 'Sem marca, salvo justificativa técnica. Indique o que permite aferir qualidade.' })}
-      <div class="grid3">${campo('Unidade', `proc.itens.${i}.unid`)}${campo('Quantidade', `proc.itens.${i}.qtd`, { type: 'number' })}${campo('CATMAT/CATSER', `proc.itens.${i}.catmat`)}</div></div>`).join('');
+      <div class="grid3">${p.objeto.parcelamento === 'lotes' ? campo('Lote', `proc.itens.${i}.lote`, { type: 'number', rr: 1 }) : ''}${campo('Unidade', `proc.itens.${i}.unid`)}${campo('Quantidade', `proc.itens.${i}.qtd`, { type: 'number' })}${campo('CATMAT/CATSER', `proc.itens.${i}.catmat`)}</div></div>`).join('');
     return bloco('Natureza e escopo', `<div class="grid2">
       ${campo('Natureza do objeto', 'proc.objeto.natureza', { type: 'select', rr: 1, options: nat, hint: 'Define modalidade, limite de dispensa e cabimento do pregão.' })}
       ${campo('Objeto em uma frase', 'proc.objeto.resumo', { req: true })}</div>
@@ -208,7 +220,8 @@ const VIEWS = {
       ${campo('Requisitos da contratação', 'proc.objeto.requisitos', { type: 'textarea', art: 'III' })}
       ${campo('Levantamento de mercado e alternativas', 'proc.objeto.alternativas', { type: 'textarea', art: 'V', hint: 'Quais soluções existem e por que esta foi escolhida.' })}
       ${campo('Descrição da solução como um todo', 'proc.objeto.solucao', { type: 'textarea', art: 'VII' })}
-      <div class="grid2">${campo('Parcelamento', 'proc.objeto.parcelamento', { type: 'select', options: [['itens', 'Por item'], ['lotes', 'Por lote'], ['global', 'Global (sem parcelamento)']], art: 'VIII' })}<span></span></div>
+      <div class="grid2">${campo('Julgamento', 'proc.objeto.parcelamento', { type: 'select', rr: 1, options: [['itens', 'Por item — um vencedor por item'], ['lotes', 'Por lote — um vencedor por lote'], ['global', 'Global — um vencedor para tudo']], art: 'VIII' })}<span></span></div>
+      ${EXPLICA_LOTES}${p.objeto.parcelamento === 'lotes' ? `<p class="hint">${esc(composicaoLotes(p))} Informe o número do lote em cada item, acima.</p>` : ''}
       ${campo('Justificativa do parcelamento ou não', 'proc.objeto.justParcelamento', { type: 'textarea', req: true, art: 'VIII', hint: 'A regra é parcelar (art. 40, V, "b"). Julgamento global ou por lote exige razão técnica ou econômica.' })}
       ${campo('Resultados pretendidos', 'proc.objeto.resultados', { type: 'textarea', art: 'IX' })}
       ${campo('Providências prévias ao contrato', 'proc.objeto.providencias', { type: 'textarea', art: 'X' })}
@@ -390,9 +403,12 @@ const VIEWS = {
       + bloco(`Peças do processo <span class="pill ${total ? 'alerta' : 'ok'}">${total ? total + ' campos a preencher' : 'completo'}</span>`, `${linhas}
       <div class="btns" style="padding-top:8px;border-top:1px solid var(--line)"><button class="btn pri" data-act="baixar-tudo">Baixar processo completo (.docx)</button><button class="btn" data-act="exp-proc">Exportar dados do processo (.json)</button><button class="btn" data-act="imp">Importar</button></div>
       <p class="hint">Campos em amarelo nos documentos são pendências: o app não inventa nome, CNPJ, data ou justificativa. O parecer jurídico (art. 53) não é gerado: é ato da assessoria jurídica.</p>`)
-      + bloco('Processo', `<div class="btns"><button class="btn" data-act="dup-proc">Duplicar processo</button>${CONFIRMA === 'proc' ? `<span class="confirma">Excluir este processo de vez? <button class="btn small" data-act="del-proc-sim">Excluir</button><button class="btn small" data-act="cancela">Cancelar</button></span>` : '<button class="btn ghost" data-act="del-proc">Excluir processo</button>'}</div>`);
+      + bloco('Processo', `<div class="btns"><button class="btn" data-act="dup-proc">Duplicar processo</button><button class="btn ghost" data-act="del-proc">Excluir processo</button></div>`);
   }
 };
+
+/* itens sem lote recebem o lote 1, para o usuário só ajustar */
+function p_lotesPadrao(p) { p.itens.forEach(it => { if (!has(it.lote)) it.lote = 1; }); }
 
 /* ---------- trilha direita ---------- */
 function renderRail() {
@@ -540,7 +556,8 @@ document.addEventListener('change', e => {
   if (el.dataset.act === 's-parc') {
     const o = R.proc.objeto; o.parcelamento = el.value;
     if (el.value === 'itens' && (!has(o.justParcelamento) || o.justParcelamento === '')) o.justParcelamento = SUGESTOES.parcelamento;
-    if (el.value === 'global' && o.justParcelamento === SUGESTOES.parcelamento) o.justParcelamento = '';
+    if (el.value !== 'itens' && o.justParcelamento === SUGESTOES.parcelamento) o.justParcelamento = '';
+    if (el.value === 'lotes') p_lotesPadrao(R.proc);
     salvarTudo('proc'); rerender(); return;
   }
   if (el.dataset.act === 'escolha') { R.proc.enquadramento.escolha = el.value; salvarTudo(); renderMain(); renderRail(); renderPassos(); return; }
@@ -551,6 +568,7 @@ document.addEventListener('change', e => {
   }
   if (!el.dataset || !el.dataset.path) return;
   setPath(el.dataset.path, valorDe(el)); salvarTudo(el.dataset.path);
+  if (el.dataset.path === 'proc.objeto.parcelamento' && el.value === 'lotes') p_lotesPadrao(R.proc);
   if (el.dataset.rr) rerender();
   if (el.dataset.path === 'cfg.nome') renderAutos();
   if (modo() !== 'simples') { renderRail(); renderPassos(); }
@@ -577,12 +595,12 @@ document.addEventListener('click', e => {
     case 's-baixar': { const d = pecasAtuais().pecas.find(x => x.id === b.dataset.id); if (d) baixarDocs([d], `${d.sigla}_${nomeArq(p.objeto.resumo || 'pedido').slice(0, 50)}.docx`); break; }
     case 'novo-proc': { const n = procVazio(); PROCS[n.id] = n; ATIVO.proc = n.id; PASSO = 'demanda'; SPASSO = 's_quem'; salvarTudo(); render(); window.scrollTo({ top: 0 }); toast(modo() === 'simples' ? 'Pedido novo criado.' : 'Processo criado.'); break; }
     case 'dup-proc': { const n = JSON.parse(JSON.stringify(p)); n.id = 'p_' + uid(); n.numero = ''; n.exemplo = false; n.atualizado = Date.now(); PROCS[n.id] = n; ATIVO.proc = n.id; salvarTudo(); render(); toast('Processo duplicado. Informe o novo número.'); break; }
-    case 'del-proc': CONFIRMA = 'proc'; renderMain(); break;
-    case 'cancela': CONFIRMA = null; renderMain(); break;
+    case 'del-proc': CONFIRMA = 'proc'; rerender(); window.scrollTo({ top: 0 }); break;
+    case 'cancela': CONFIRMA = null; rerender(); break;
     case 'del-proc-sim': {
       const id = ATIVO.proc; delete PROCS[id]; Store.del('proc', id); CONFIRMA = null;
       if (!Object.keys(PROCS).length) { const n = procVazio(); PROCS[n.id] = n; }
-      ATIVO.proc = Object.keys(PROCS)[0]; PASSO = 'demanda'; salvarTudo(); render(); toast('Processo excluído.'); break;
+      ATIVO.proc = Object.keys(PROCS)[0]; PASSO = 'demanda'; SPASSO = 's_quem'; salvarTudo(); render(); window.scrollTo({ top: 0 }); toast(modo() === 'simples' ? 'Pedido excluído.' : 'Processo excluído.'); break;
     }
     case 'novo-cfg': { const c = cfgPadrao(); c.nome = 'Novo órgão'; ['ente', 'cidade', 'cnpj', 'endereco', 'fone', 'email', 'site', 'brasao'].forEach(k => c[k] = ''); CFGS[c.id] = c; ATIVO.cfg = c.id; salvarTudo(); render(); break; }
     case 'exp-cfg': exportar({ formato: 'licita-iac', versao: 1, cfg: R.cfg }, 'orgao-' + nomeArq(R.cfg.nome) + '.json'); break;

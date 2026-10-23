@@ -31,6 +31,10 @@ Os dados ficam salvos **no navegador do computador em uso**. Limpar os dados do 
 | Orçamento | dotação |
 | Documentos | peças em .docx, individualmente ou o processo completo |
 
+## Itens, lotes e vencedores
+
+O julgamento pode ser **por item** (regra: cada item tem seu vencedor), **por lote** (itens agrupados; cada lote tem seu vencedor, que fornece todos os itens do lote) ou **global** (uma empresa para tudo). Lote e global exigem justificativa (art. 40, V, "b", e §3º; Súmula 247 do TCU). As tabelas das peças saem agrupadas por lote, com subtotais; a exclusividade de ME/EPP é avaliada por lote; edital, contrato e ata registram que cada vencedor assina o seu próprio instrumento.
+
 ## Identidade visual
 
 Todas as peças saem com o cabeçalho da Prefeitura (brasão, nome sublinhado, endereço, telefone e CNPJ) e o brasão esmaecido a 10% ao fundo de cada página. Os dados vêm do perfil do órgão, na etapa Município; outro município pode enviar o próprio brasão e desligar a marca d'água.
@@ -76,6 +80,10 @@ static/originais/ imagens originais: logo, brasão, cabeçalho de referência
 ```
 
 Cada push na branch `main` roda os testes e publica a pasta `web/` no GitHub Pages (`.github/workflows/pages.yml`).
+
+## Créditos
+
+Feito com auxílio de IA · Eng. Ambiental e Sanitarista Eduardo Rodrigo Viana Mallet.
 
 ## Licença
 

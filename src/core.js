@@ -210,6 +210,7 @@ function procVazio() {
 
 /* Completa campos que versões anteriores não tinham */
 function normalizarProc(p) {
+  (p.itens || []).forEach(it => { if (it.lote === undefined) it.lote = ''; });
   if (!p.orcs) p.orcs = [];
   if (!p.pedido) p.pedido = { prazoResposta: '', contato: '', fornecedores: [] };
   if (!p.pedido.fornecedores) p.pedido.fornecedores = [];
@@ -378,9 +379,10 @@ function analisar(p, cfg) {
   // --- alertas gerais
   if (est > V.grandeVulto) alertas.push({ n: 'alerta', t: 'Contratação de grande vulto: matriz de riscos e programa de integridade obrigatórios (arts. 22, §3º, e 25, §4º).' });
   if (escolhida && escolhida.grupo === 'Licitação' && escolhida.id === 'PREGAO') {
-    const exclusivos = p.itens.filter(it => totalItem(it, p.pesquisa.metodo) <= V.meEpp);
-    if (exclusivos.length && p.disputa.exclusivaME !== 'nao') alertas.push({ n: 'info', t: `${exclusivos.length} item(ns) até ${fmtBRL(V.meEpp)}: participação exclusiva de ME/EPP (LC nº 123/2006, art. 48, I), salvo art. 49.` });
+    const ex = exclusivosME(p, cfg);
+    if (ex.lista.length && p.disputa.exclusivaME !== 'nao') alertas.push({ n: 'info', t: `${ex.tipo === 'global' ? 'Contratação' : ex.lista.length + (ex.tipo === 'lotes' ? ' lote(s)' : ' item(ns)')} até ${fmtBRL(V.meEpp)}: participação exclusiva de ME/EPP (LC nº 123/2006, art. 48, I), salvo art. 49.` });
   }
+  if (p.objeto.parcelamento === 'lotes' && p.itens.some(it => !has(it.lote))) alertas.push({ n: 'alerta', t: 'Julgamento por lote com item sem lote definido.' });
   if (p.situacao.srp && !(p.situacao.srpHip || []).length) alertas.push({ n: 'alerta', t: 'Registro de preços marcado sem hipótese de cabimento indicada.' });
   if (p.situacao.srp && ['obra'].includes(nat)) alertas.push({ n: 'alerta', t: 'Registro de preços para obra só cabe com projeto padronizado e necessidade permanente (art. 85).' });
   const etpFacultativo = cfg.regulamento === 'federal' && escolhida && ['75-I', '75-II', '75-VIII'].includes(escolhida.id);
@@ -423,18 +425,53 @@ function criterioPadrao(p, h, est, cfg) {
 /* Blocos: title, h, p, li, table, kv, sig, note, pb, space */
 
 function cab(p) { return { proc: ph(p.numero, 'nº do processo') }; }
-function itensTabela(p, comPreco = true) {
-  const m = p.pesquisa.metodo;
-  const cols = comPreco
-    ? [{ h: 'Item', w: 1 }, { h: 'Descrição', w: 7 }, { h: 'Unid.', w: 1.3 }, { h: 'Qtd.', w: 1.3 }, { h: 'Valor unit.', w: 2.2 }, { h: 'Valor total', w: 2.4 }]
-    : [{ h: 'Item', w: 1 }, { h: 'Descrição', w: 9 }, { h: 'Unid.', w: 1.5 }, { h: 'Qtd.', w: 1.5 }];
-  const rows = p.itens.map((it, i) => comPreco
-    ? [String(i + 1), ph(it.desc, 'descrição do item'), it.unid || 'un', fmtNum(it.qtd, 0), fmtBRL(precoUnit(it, m)), fmtBRL(totalItem(it, m))]
-    : [String(i + 1), ph(it.desc, 'descrição do item'), it.unid || 'un', fmtNum(it.qtd, 0)]);
+/* ---------- Itens e lotes ---------- */
+function grupoLotes(p) {
+  if (p.objeto.parcelamento !== 'lotes') return null;
+  const g = {};
+  p.itens.forEach((it, i) => { const k = has(it.lote) ? String(it.lote).trim() : '?'; (g[k] = g[k] || []).push({ it, i }); });
+  const ord = (a, b) => (a === '?') - (b === '?') || (parseFloat(a) || 0) - (parseFloat(b) || 0) || a.localeCompare(b);
+  return Object.keys(g).sort(ord).map(k => ({ lote: k, itens: g[k], total: round2(g[k].reduce((x, o) => x + totalItem(o.it, p.pesquisa.metodo), 0)) }));
+}
+const nomeLote = k => k === '?' ? 'Lote ⟦não informado⟧' : 'Lote ' + k;
+function composicaoLotes(p) {
+  const L = grupoLotes(p); if (!L) return '';
+  return 'Composição dos lotes: ' + L.map(g => `${nomeLote(g.lote)} — ${g.itens.length > 1 ? 'itens' : 'item'} ${g.itens.map(o => o.i + 1).join(', ')}`).join('; ') + '.';
+}
+function textoJulgamento(p) {
+  const par = p.objeto.parcelamento;
+  if (par === 'lotes') return 'O julgamento será por lote. Cada lote é disputado e adjudicado separadamente, podendo haver um vencedor diferente para cada lote. O fornecedor pode participar de um ou mais lotes, mas deve cotar todos os itens de cada lote em que participar.';
+  if (par === 'global') return 'O julgamento será global: um único fornecedor será contratado para a totalidade dos itens.';
+  return p.itens.length > 1 ? 'O julgamento será por item. Cada item é disputado e adjudicado separadamente, podendo haver um vencedor diferente para cada item.' : '';
+}
+function itensTabela(p, comPreco = true, emBranco = false) {
+  const m = p.pesquisa.metodo, L = grupoLotes(p);
+  const cols = [{ h: 'Item', w: 1 }, { h: 'Descrição', w: comPreco ? 7 : 9 }, { h: 'Unid.', w: 1.3 }, { h: 'Qtd.', w: 1.3 }];
+  if (comPreco) cols.push({ h: 'Valor unit.', w: 2.2 }, { h: 'Valor total', w: 2.4 });
+  const vazio = comPreco ? ['', ''] : [];
+  const linha = o => [String(o.i + 1), ph(o.it.desc, 'descrição do item'), o.it.unid || 'un', fmtNum(o.it.qtd, 0)]
+    .concat(comPreco ? (emBranco ? ['', ''] : [fmtBRL(precoUnit(o.it, m)), fmtBRL(totalItem(o.it, m))]) : []);
+  let rows;
+  if (L) {
+    rows = [];
+    L.forEach(g => {
+      rows.push(['', `**${nomeLote(g.lote).toUpperCase()}**`, '', '', ...vazio]);
+      g.itens.forEach(o => rows.push(linha(o)));
+      if (comPreco) rows.push(['', `**Subtotal — ${nomeLote(g.lote).toLowerCase()}**`, '', '', '', emBranco ? '' : '**' + fmtBRL(g.total) + '**']);
+    });
+  } else rows = p.itens.map((it, i) => linha({ it, i }));
   const t = { t: 'table', cols, rows };
-  if (comPreco) t.foot = ['', '**Valor total estimado**', '', '', '', '**' + fmtBRL(estimativa(p)) + '**'];
+  if (comPreco) t.foot = ['', emBranco ? '**Total**' : '**Valor total estimado**', '', '', '', emBranco ? '' : '**' + fmtBRL(estimativa(p)) + '**'];
   return t;
 }
+/* Itens ou lotes de participação exclusiva de ME/EPP (LC 123, art. 48, I) */
+function exclusivosME(p, cfg) {
+  const L = grupoLotes(p), lim = cfg.valores.meEpp;
+  if (L) return { tipo: 'lotes', lista: L.filter(g => g.total <= lim).map(g => g.lote) };
+  if (p.objeto.parcelamento === 'global') return { tipo: 'global', lista: estimativa(p) <= lim ? ['global'] : [] };
+  return { tipo: 'itens', lista: p.itens.map((it, i) => ({ i: i + 1, v: totalItem(it, p.pesquisa.metodo) })).filter(x => x.v <= lim).map(x => x.i) };
+}
+
 function pcaTexto(d) {
   if (d.pca === 'sim') return `A contratação está prevista no Plano de Contratações Anual${has(d.pcaRef) ? ' (' + d.pcaRef + ')' : ''}, em alinhamento com o planejamento da Administração.`;
   if (d.pca === 'nao') return 'A contratação não consta do Plano de Contratações Anual. ⟦justificar a inclusão superveniente⟧';
@@ -495,7 +532,7 @@ function docETP(p, cfg, a) {
     { t: 'h', text: '6. Estimativa do valor da contratação *' },
     { t: 'p', text: `O valor estimado é de **${fmtBRL(a.est)}**, apurado pela ${p.pesquisa.metodo === 'media' ? 'média' : p.pesquisa.metodo === 'menor' ? 'menor valor' : 'mediana'} dos preços válidos coletados, conforme o relatório de pesquisa de preços anexo, nos termos do art. 23.` },
     ...sec(7, 'Descrição da solução como um todo', [o.solucao, p.execucao.garantia, p.execucao.assistencia].filter(has).join(' '), false),
-    { t: 'h', text: '8. Justificativa para o parcelamento ou não *' }, { t: 'p', text: p.itens.length === 1 && !has(o.justParcelamento) ? 'Objeto composto por item único, sem possibilidade de parcelamento.' : o.parcelamento === 'itens' && !has(o.justParcelamento) ? 'Adota-se o parcelamento por itens, regra do art. 40, V, "b", da Lei nº 14.133/2021, para que cada item seja disputado separadamente, ampliando a competição.' : `${parc} ${ph(o.justParcelamento, 'justificativa do parcelamento')}` },
+    { t: 'h', text: '8. Justificativa para o parcelamento ou não *' }, { t: 'p', text: p.itens.length === 1 && !has(o.justParcelamento) ? 'Objeto composto por item único, sem possibilidade de parcelamento.' : o.parcelamento === 'itens' && !has(o.justParcelamento) ? 'Adota-se o parcelamento por itens, regra do art. 40, V, "b", da Lei nº 14.133/2021, para que cada item seja disputado separadamente, ampliando a competição.' : `${parc} ${ph(o.justParcelamento, 'justificativa do parcelamento')}${o.parcelamento === 'lotes' ? ' ' + composicaoLotes(p) : ''}` },
     ...sec(9, 'Resultados pretendidos', o.resultados, false),
     ...sec(10, 'Providências prévias ao contrato', o.providencias, false),
     ...sec(11, 'Contratações correlatas ou interdependentes', o.correlatas, false),
@@ -553,7 +590,7 @@ function docTR(p, cfg, a) {
     { t: 'p', text: `A execução será acompanhada e fiscalizada nos termos do art. 117, pelo gestor ${ph(e.gestor, 'nome do gestor')} e pelo fiscal ${ph(e.fiscal, 'nome do fiscal')}, que registrarão as ocorrências e determinarão a regularização de falhas, informando a autoridade superior do que exceder sua competência.` },
     { t: 'h', text: '7. Critérios de medição e de pagamento' },
     { t: 'p', text: `O pagamento será efetuado em até ${num(e.pagamentoDias) || 30} dias contados do recebimento definitivo e do atesto da nota fiscal pelo fiscal, mediante comprovação da regularidade fiscal do contratado.${has(e.reajuste) ? ' Os preços poderão ser reajustados após 12 meses da data do orçamento estimado, pelo índice ' + e.reajuste + ' (art. 25, §7º).' : ''}` },
-    { t: 'h', text: '8. Forma e critérios de seleção do fornecedor' }, { t: 'p', text: selecao }, { t: 'p', text: habil },
+    { t: 'h', text: '8. Forma e critérios de seleção do fornecedor' }, { t: 'p', text: selecao }, ...(textoJulgamento(p) ? [{ t: 'p', text: textoJulgamento(p) }] : []), { t: 'p', text: habil },
     { t: 'h', text: '9. Estimativa do valor da contratação' },
     { t: 'p', text: `Valor total estimado de **${fmtBRL(a.est)}**, conforme relatório de pesquisa de preços, que contém os preços unitários referenciais e a memória de cálculo.` },
     { t: 'h', text: '10. Adequação orçamentária' }, { t: 'p', text: a.simples ? 'A dotação orçamentária será indicada pela unidade de contabilidade.' : `A despesa correrá à conta da dotação: ${dotacaoTexto(p.orcamento)}.` },
@@ -712,10 +749,12 @@ function docDesignacao(p, cfg, a) {
 function docEdital(p, cfg, a) {
   const h = a.escolhida, d = p.disputa, crit = criterioPadrao(p, h, a.est, cfg);
   const mod = h.titulo.toUpperCase(), srp = p.situacao.srp;
-  const exclusivos = p.itens.map((it, i) => ({ i: i + 1, v: totalItem(it, p.pesquisa.metodo) })).filter(x => x.v <= cfg.valores.meEpp);
+  const ex = exclusivosME(p, cfg), unid = ex.tipo === 'lotes' ? 'lotes' : 'itens';
   const exclTxt = d.exclusivaME === 'nao'
     ? `Não se aplica a participação exclusiva de ME/EPP: ${ph(d.justNaoExclusiva, 'justificativa com base no art. 49 da LC nº 123/2006')}.`
-    : exclusivos.length ? `Os itens ${exclusivos.map(x => x.i).join(', ')} destinam-se à participação exclusiva de microempresas e empresas de pequeno porte (LC nº 123/2006, art. 48, I).` : 'Não há itens de participação exclusiva de ME/EPP.';
+    : !ex.lista.length ? `Não há ${unid} de participação exclusiva de ME/EPP.`
+    : ex.tipo === 'global' ? 'A licitação destina-se à participação exclusiva de microempresas e empresas de pequeno porte (LC nº 123/2006, art. 48, I).'
+    : `Os ${unid} ${ex.lista.join(', ')} destinam-se à participação exclusiva de microempresas e empresas de pequeno porte (LC nº 123/2006, art. 48, I).`;
   const B = [
     { t: 'title', text: `EDITAL DE ${mod} ELETRÔNICO Nº ⟦nº/ano⟧`, sub: `Processo Administrativo nº ${ph(p.numero, 'nº do processo')}${srp ? ' — Registro de Preços' : ''}` },
     { t: 'note', text: 'MINUTA gerada a partir dos dados do processo. Sujeita à revisão da assessoria jurídica (art. 53).' },
@@ -723,6 +762,7 @@ function docEdital(p, cfg, a) {
     { t: 'kv', rows: [['Sessão pública', `${fmtData(d.dataSessao) || '⟦data⟧'} às ⟦hora⟧ (horário de Brasília)`], ['Plataforma', ph(cfg.plataforma, 'plataforma eletrônica')], ['Valor estimado', fmtBRL(a.est)], ['Prazo mínimo de publicação', a.prazoEdital || '⟦prazo⟧']] },
     { t: 'h', text: '1. DO OBJETO' },
     { t: 'p', text: `1.1. ${ph(p.objeto.resumo, 'objeto')}, conforme especificações do Termo de Referência (Anexo I).` },
+    ...(textoJulgamento(p) ? [{ t: 'p', text: '1.2. ' + textoJulgamento(p) }] : []),
     itensTabela(p, false),
     { t: 'h', text: '2. DA PARTICIPAÇÃO' },
     { t: 'p', text: `2.1. Podem participar os interessados cujo ramo de atividade seja compatível com o objeto e que estejam credenciados na plataforma ${ph(cfg.plataforma, 'plataforma')}.` },
@@ -776,7 +816,8 @@ function docContrato(p, cfg, a) {
     { t: 'title', text: 'MINUTA DE CONTRATO Nº ⟦nº/ano⟧', sub: `Processo Administrativo nº ${ph(p.numero, 'nº do processo')}` },
     { t: 'note', text: 'MINUTA sujeita à revisão da assessoria jurídica (art. 53).' },
     { t: 'p', text: `O **${cfg.ente.toUpperCase()}**, CNPJ ${ph(cfg.cnpj, 'CNPJ do Município')}, com sede em ${ph(cfg.endereco, 'endereço')}, neste ato representado por ${ph(cfg.autoridade.nome, 'autoridade')}, ${cfg.autoridade.cargo}, doravante CONTRATANTE, e **${ph(f.razao, 'razão social do contratado')}**, CNPJ ${ph(f.cnpj, 'CNPJ')}, com sede em ${ph(f.endereco, 'endereço do contratado')}, representada por ${ph(f.representante, 'representante legal')}, doravante CONTRATADA, ajustam o presente contrato, decorrente de ${a.direta ? (a.escolhida.grupo.toLowerCase() + ' de licitação, ' + a.escolhida.base) : ('licitação na modalidade ' + a.escolhida.titulo.toLowerCase())} da Lei nº 14.133/2021, mediante as cláusulas seguintes.` },
-    ...cl('PRIMEIRA', 'DO OBJETO', `${ph(o.resumo, 'objeto')}, conforme termo de referência e proposta da CONTRATADA, que integram este contrato independentemente de transcrição (art. 92, II).`),
+    ...cl('PRIMEIRA', 'DO OBJETO', [`${ph(o.resumo, 'objeto')}, conforme termo de referência e proposta da CONTRATADA, que integram este contrato independentemente de transcrição (art. 92, II).`,
+      ...(o.parcelamento !== 'global' && p.itens.length > 1 ? [`Este contrato abrange somente os ${o.parcelamento === 'lotes' ? 'lotes' : 'itens'} adjudicados à CONTRATADA. Havendo vencedores distintos, celebra-se um contrato com cada um. ⟦manter na tabela apenas os ${o.parcelamento === 'lotes' ? 'lotes' : 'itens'} desta contratada⟧`] : [])]),
     itensTabela(p, true),
     ...cl('SEGUNDA', 'DA VIGÊNCIA', vig),
     ...cl('TERCEIRA', 'DO PREÇO', `O valor total do contrato é de ${fmtBRL(a.est)}, já incluídas todas as despesas diretas e indiretas. ⟦ajustar ao valor da proposta vencedora⟧`),
@@ -807,7 +848,9 @@ function docAta(p, cfg, a) {
     { t: 'title', text: 'MINUTA DE ATA DE REGISTRO DE PREÇOS Nº ⟦nº/ano⟧', sub: `Processo Administrativo nº ${ph(p.numero, 'nº do processo')}` },
     { t: 'note', text: 'MINUTA sujeita à revisão da assessoria jurídica (art. 53).' },
     { t: 'p', text: `O ${cfg.ente}, CNPJ ${ph(cfg.cnpj, 'CNPJ do Município')}, órgão gerenciador, registra os preços de ${ph(f.razao || '', 'fornecedor registrado')}, CNPJ ${ph(f.cnpj, 'CNPJ')}, para ${ph(p.objeto.resumo, 'objeto')}, conforme as condições abaixo e o edital ⟦nº⟧.` },
-    { t: 'h', text: '1. Preços registrados' }, itensTabela(p, true),
+    { t: 'h', text: '1. Preços registrados' },
+    ...(p.objeto.parcelamento !== 'global' && p.itens.length > 1 ? [{ t: 'p', text: `Esta ata registra somente os ${p.objeto.parcelamento === 'lotes' ? 'lotes' : 'itens'} adjudicados a este fornecedor; havendo vencedores distintos, lavra-se uma ata para cada um. ⟦manter na tabela apenas os ${p.objeto.parcelamento === 'lotes' ? 'lotes' : 'itens'} deste fornecedor⟧` }] : []),
+    itensTabela(p, true),
     { t: 'h', text: '2. Vigência' }, { t: 'p', text: 'A ata terá vigência de 1 (um) ano, contado da divulgação no PNCP, prorrogável por igual período, desde que comprovado que o preço é vantajoso (art. 84).' },
     { t: 'h', text: '3. Ausência de obrigação de contratar' }, { t: 'p', text: 'A existência de preços registrados não obriga a Administração a contratar, podendo realizar contratação específica, assegurada preferência ao fornecedor registrado em igualdade de condições (art. 83).' },
     { t: 'h', text: '4. Contratações decorrentes' }, { t: 'p', text: 'As contratações serão formalizadas por termo de contrato ou instrumento substitutivo (art. 95), conforme as necessidades da Administração.' },
@@ -853,8 +896,8 @@ function docPedido(p, cfg, a) {
       { t: 'title', text: 'SOLICITAÇÃO DE ORÇAMENTO', sub: 'Pesquisa de preços — Lei nº 14.133/2021, art. 23, §1º, IV' },
       { t: 'kv', rows: [['À empresa', ph(f.nome, 'nome da empresa')], ['Contato', ph(f.contato, 'e-mail ou telefone')], ['Processo', has(p.numero) ? p.numero : 'a ser numerado pela unidade de licitações']] },
       { t: 'p', text: `O(A) ${ph(p.demanda.secretaria, 'secretaria')} da ${cfg.nome} solicita orçamento para ${ph(p.objeto.resumo, 'objeto')}, conforme a relação abaixo. O pedido destina-se à estimativa de preços e não gera compromisso de contratação.` },
-      { t: 'table', cols: [{ h: 'Item', w: 1 }, { h: 'Descrição', w: 6.5 }, { h: 'Unid.', w: 1.2 }, { h: 'Qtd.', w: 1.2 }, { h: 'Valor unit. (R$)', w: 2 }, { h: 'Valor total (R$)', w: 2 }],
-        rows: p.itens.map((it, k) => [String(k + 1), ph(it.desc, 'descrição do item'), it.unid || 'un', fmtNum(it.qtd, 0), '', '']), foot: ['', '**Total**', '', '', '', ''] },
+      itensTabela(p, true, true),
+      ...(p.objeto.parcelamento === 'lotes' ? [{ t: 'p', text: 'Os itens estão agrupados em lotes. Pode ser cotado um ou mais lotes, desde que o orçamento inclua todos os itens de cada lote cotado.' }] : []),
       { t: 'p', text: 'O orçamento deverá informar: razão social, CNPJ, endereço, telefone e e-mail; preço unitário e total de cada item, já incluídos tributos, frete e demais custos; prazo de validade da proposta, de no mínimo 60 (sessenta) dias; prazo de entrega ou execução; data e assinatura do responsável.' },
       { t: 'p', text: `Local de entrega ou execução: ${ph(p.execucao.local, 'local')}. Prazo desejado: ${ph(p.execucao.prazo, 'prazo')}.` },
       { t: 'p', text: `Pede-se o envio do orçamento até ${fmtData(ped.prazoResposta) || '⟦data limite⟧'}, para ${ph(ped.contato, 'e-mail ou endereço para resposta')}.` },
@@ -1012,4 +1055,4 @@ function paraDocx(D, pecas, p, cfg, opts = {}) {
   return new Document({ creator: 'Licita IAC', title: pecas.length === 1 ? pecas[0].titulo : 'Processo ' + (p.numero || ''), styles: { default: { document: { run: { font: FONT, size: 22 } } } }, sections });
 }
 
-if (typeof module !== 'undefined') module.exports = { cfgPadrao, normalizarCfg, linhasCabecalho, brasaoURI, procExemplo, procVazio, normalizarProc, syncOrcs, setValorOrc, valorOrc, analisar, montarPecas, paraDocx, estat, estimativa, NAT, precoUnit, totalItem };
+if (typeof module !== 'undefined') module.exports = { grupoLotes, textoJulgamento, exclusivosME, cfgPadrao, normalizarCfg, linhasCabecalho, brasaoURI, procExemplo, procVazio, normalizarProc, syncOrcs, setValorOrc, valorOrc, analisar, montarPecas, paraDocx, estat, estimativa, NAT, precoUnit, totalItem };

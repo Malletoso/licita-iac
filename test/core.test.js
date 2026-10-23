@@ -119,3 +119,29 @@ test('perfil antigo de Iacanga recebe os dados do cabeçalho', () => {
   assert.equal(c.brasao, 'iacanga');
   assert.equal(C.linhasCabecalho(c).linhas[0].t, 'Estado de São Paulo');
 });
+
+test('julgamento por lote agrupa itens, soma subtotais e explica vencedores distintos', () => {
+  const cfg = C.cfgPadrao(), p = clone(C.procExemplo());
+  p.objeto.parcelamento = 'lotes'; p.objeto.justParcelamento = 'Itens entregues juntos.';
+  p.itens.push(clone(p.itens[0])); p.itens[2].desc = 'Muda de ipê-roxo'; p.itens[2].id = 'x3'; p.itens[2].cot.forEach(c => { c.orcId = undefined; });
+  p.itens[0].lote = 1; p.itens[1].lote = 2; p.itens[2].lote = 1;
+  const L = C.grupoLotes(p);
+  assert.deepEqual(L.map(g => [g.lote, g.itens.map(o => o.i + 1)]), [['1', [1, 3]], ['2', [2]]]);
+  const { pecas } = C.montarPecas(p, cfg, { simples: true });
+  const tr = pecas.find(d => d.id === 'tr');
+  assert.ok(tr.blocks.some(b => /vencedor diferente para cada lote/.test(b.text || '')));
+  const tab = tr.blocks.find(b => b.t === 'table');
+  assert.ok(tab.rows.some(r => /LOTE 1/.test(r[1])));
+  const etp = pecas.find(d => d.id === 'etp');
+  assert.ok(etp.blocks.some(b => /Lote 1 — itens 1, 3; Lote 2 — item 2/.test(b.text || '')));
+  const mapa = pecas.find(d => d.id === 'precos');
+  assert.ok(JSON.stringify(mapa).includes('Subtotal — lote 1'));
+});
+
+test('exclusividade ME/EPP é avaliada por lote', () => {
+  const cfg = C.cfgPadrao(), p = clone(C.procExemplo());
+  p.objeto.parcelamento = 'lotes'; p.itens[0].lote = 1; p.itens[1].lote = 1;
+  assert.deepEqual(C.exclusivosME(p, cfg), { tipo: 'lotes', lista: ['1'] });
+  p.itens[0].qtd = 5000;
+  assert.deepEqual(C.exclusivosME(p, cfg).lista, []);
+});
