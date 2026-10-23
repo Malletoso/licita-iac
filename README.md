@@ -13,7 +13,7 @@ Os dados ficam salvos **no navegador do computador em uso**. Limpar os dados do 
 ## Dois modos
 
 - **Secretaria** (padrão): passo a passo em linguagem simples para as secretarias requisitantes. Gera só o que a Licitação pede: ETP, termo de referência, mapa de orçamentos, pedido de orçamento (uma folha por empresa) e termo de responsabilidade com a indicação de gestor e fiscal. No fim, o pedido é exportado em .json para a Licitação abrir no app.
-- **Licitações**: o processo completo descrito abaixo, com motor de enquadramento e todas as peças.
+- **Licitações**: o processo completo descrito abaixo, com motor de enquadramento e todas as peças. Desativado na interface desde a versão 0.2 (constante `MODO_COMPLETO_ATIVO` em `src/ui.js`); o código segue no repositório.
 
 ## Etapas do modo Licitações
 

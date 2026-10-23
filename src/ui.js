@@ -105,7 +105,9 @@ const PASSOS = [
   { id: 'documentos', t: 'Documentos', d: 'Peças do processo em .docx, com pendências marcadas em amarelo.' }
 ];
 
-const modo = () => ATIVO.modo === 'completo' ? 'completo' : 'simples';
+/* O modo Licitações (completo) está desativado na interface; o código segue no repositório. */
+const MODO_COMPLETO_ATIVO = false;
+const modo = () => MODO_COMPLETO_ATIVO && ATIVO.modo === 'completo' ? 'completo' : 'simples';
 const pecasAtuais = () => montarPecas(R.proc, R.cfg, { simples: modo() === 'simples' });
 function render() {
   document.body.classList.toggle('simples', modo() === 'simples');
@@ -121,7 +123,7 @@ function renderAutos() {
   const quando = p => { const d = new Date(p.atualizado || Date.now()), z = n => String(n).padStart(2, '0'); return `${z(d.getDate())}/${z(d.getMonth() + 1)} ${z(d.getHours())}:${z(d.getMinutes())}`; };
   const nomeProc = p => (p.numero ? 'Proc. ' + p.numero + ' — ' : '') + (p.objeto.resumo ? p.objeto.resumo.slice(0, 60) : `${simples ? 'Pedido' : 'Processo'} sem título · ${quando(p)}`) + (p.exemplo ? ' (exemplo)' : '');
   $('#autos').innerHTML = `
-    <div class="modo" role="group" aria-label="Modo de uso"><button data-act="modo" data-m="simples" aria-pressed="${simples}">Secretaria</button><button data-act="modo" data-m="completo" aria-pressed="${!simples}">Licitações</button></div>
+    ${MODO_COMPLETO_ATIVO ? `<div class="modo" role="group" aria-label="Modo de uso"><button data-act="modo" data-m="simples" aria-pressed="${simples}">Secretaria</button><button data-act="modo" data-m="completo" aria-pressed="${!simples}">Licitações</button></div>` : ''}
     ${simples ? '' : `<label for="selCfg">Órgão</label>
     <select id="selCfg">${cfgs.map(c => `<option value="${c.id}"${c.id === ATIVO.cfg ? ' selected' : ''}>${esc(c.nome)}</option>`).join('')}</select>`}
     <label for="selProc">${simples ? 'Pedido' : 'Processo'}</label>

@@ -261,8 +261,9 @@ const SVIEWS = {
       <section class="s-card"><h2>Documentos</h2>${docs}
       <div class="btns" style="padding-top:10px"><button class="btn big pri" data-act="baixar-tudo">Baixar todos em um arquivo (.docx)</button></div></section>
       <section class="s-card"><h2>Enviar para a Licitação</h2>
-      <ol class="passos-envio"><li>Baixe os documentos, leia cada um com atenção, corrija o que for preciso, imprima e só então assine.</li><li>Junte os orçamentos assinados pelas empresas.</li><li>Baixe o arquivo do pedido e envie junto, por e-mail ou pendrive. A Licitação abre esse arquivo no app e continua o processo sem redigitar nada.</li></ol>
-      <div class="btns"><button class="btn big" data-act="exp-proc">Baixar arquivo do pedido (.json)</button></div></section>
+      <ol class="passos-envio"><li>Baixe os documentos, leia cada um com atenção, corrija o que for preciso, imprima e só então assine.</li><li>Junte os orçamentos assinados pelas empresas.</li><li>Encaminhe os documentos assinados e os orçamentos à ${esc(setorLic(R.cfg))}, pelo fluxo de protocolo da Prefeitura.</li></ol>
+      <p class="hint">Os pedidos ficam guardados só neste computador e neste navegador. Para não perder o trabalho, ou para continuar em outro computador, baixe uma cópia de segurança.</p>
+      <div class="btns"><button class="btn" data-act="exp-proc">Baixar cópia de segurança do pedido (.json)</button><button class="btn" data-act="imp">Abrir uma cópia salva</button></div></section>
       <section class="s-card"><div class="btns"><button class="btn" data-act="novo-proc">Começar um novo pedido</button><button class="btn" data-act="dup-proc">Copiar este pedido</button><button class="btn ghost" data-act="del-proc">Excluir este pedido</button></div></section>`;
   }
 };

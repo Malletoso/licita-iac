@@ -1,6 +1,6 @@
 {
   "name": "licita-iac",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "description": "Gerador de processos de licitação e contratação direta pela Lei nº 14.133/2021, com peças em Word.",
   "license": "UNLICENSED",
