@@ -12,8 +12,9 @@ const SUGESTOES = {
 };
 
 /* Opções grandes em forma de cartão (radio) ligadas a um campo */
-function opcoesRadio(path, ops, cls = '') {
-  const v = String(getPath(path) ?? '');
+function opcoesRadio(path, ops, cls = '', padrao) {
+  const atual = getPath(path);
+  const v = String((atual === '' || atual === undefined || atual === null) && padrao !== undefined ? padrao : (atual ?? ''));
   return `<div class="opcoes ${cls}" role="radiogroup">${ops.map(([k, l, sm]) => `<label class="opcao${v === String(k) ? ' sel' : ''}"><input type="radio" name="r_${path.replace(/\W/g, '_')}" data-path="${path}" data-rr="1" value="${k}"${v === String(k) ? ' checked' : ''}><span><b>${l}</b>${sm ? `<small>${sm}</small>` : ''}</span></label>`).join('')}</div>`;
 }
 
@@ -66,13 +67,13 @@ const SPASSOS = [
   { id: 's_oque', t: 'O que você precisa', d: 'Diga o tipo de contratação e liste cada item com a quantidade.' },
   { id: 's_detalhe', t: 'Detalhes técnicos', d: 'Medidas, materiais, normas e cuidados que a empresa precisa seguir. Quanto mais claro, menos problema na entrega.' },
   { id: 's_porque', t: 'Por que precisa', d: 'Esta é a parte mais importante. É ela que justifica gastar o dinheiro público.' },
+  { id: 's_plan', t: 'PCA e orçamento', d: 'Se a compra estava planejada e de qual dotação sai o dinheiro.' },
   { id: 's_quanto', t: 'Quantidade e solução', d: 'Mostre a conta das quantidades e por que esta é a melhor forma de resolver o problema.' },
   { id: 's_exig', t: 'Exigências e garantias', d: 'O que a empresa precisa comprovar e que garantias a Prefeitura terá.' },
   { id: 's_entrega', t: 'Execução e pagamento', d: 'Onde, em quanto tempo, como será conferido e como será pago.' },
   { id: 's_pedido', t: 'Pedir orçamentos', d: 'O app monta um pedido de orçamento para cada empresa. Peça a pelo menos 3.' },
   { id: 's_orcs', t: 'Orçamentos recebidos', d: 'Digite o preço que cada empresa passou para cada item.' },
   { id: 's_fiscal', t: 'Gestão e fiscalização', d: 'Quem vai cuidar do contrato e conferir a execução. Os nomes vão para o Termo de Referência e para o Termo de Responsabilidade.' },
-  { id: 's_dotacao', t: 'Orçamento', d: 'De qual ficha sai o dinheiro. Se não souber, deixe em branco: a Contabilidade indica.' },
   { id: 's_gerar', t: 'Conferir e gerar', d: 'Veja o que falta, baixe os documentos e envie para a Licitação.' }
 ];
 
@@ -127,13 +128,25 @@ const SVIEWS = {
         ${ajuda('Escreva um tópico por parágrafo, deixando uma linha em branco entre eles. Comece com um título curto e dois-pontos. Para listas, comece a linha com hífen (-). Cada parágrafo vira um item numerado no documento.', 'Normas Técnicas: O arame deve atender à ABNT NBR 6210.<br><br>Mourões de concreto:<br>- Comprimento total: 3,00 m<br>- Parte enterrada: 0,70 m')}</section>`;
   },
 
+  s_plan() {
+    const p = R.proc, d = p.demanda, o = p.orcamento, temFicha = dotacoesValidas(p).some(x => has(x.ficha));
+    return `<section class="s-card"><h2>A contratação está no Plano de Contratações Anual (PCA)?</h2>
+      ${ajuda('O PCA é a lista das compras planejadas para o ano. Se a necessidade surgiu depois, explique por que não pode esperar.', '')}
+      ${opcoesRadio('proc.demanda.pca', [['sim', 'Sim, está no PCA', 'A compra foi planejada'], ['nao', 'Não está', 'A necessidade surgiu depois'], ['nao_elaborado', 'Não há PCA', 'O Município não elaborou PCA este ano']], 'tres')}
+      ${d.pca === 'sim' ? campo('Referência no PCA (opcional)', 'proc.demanda.pcaRef', { ph: 'Item 12 do PCA 2026' }) : ''}
+      ${d.pca === 'nao' ? campo('Por que a demanda não pode esperar o próximo PCA?', 'proc.demanda.pcaJust', { type: 'textarea', rows: 3, req: true, rev: 'justificativa' }) + `<div class="btns">${sugerir('proc.demanda.pcaJust', 'pcaJust')}</div>` : ''}</section>
+      <section class="s-card"><h2>De qual dotação sai o dinheiro?</h2>
+      ${ajuda('Informe a secretaria e o número da ficha orçamentária. Se mais de uma secretaria vai usar o objeto, adicione uma linha para cada.', 'Agricultura e Meio Ambiente: ficha 331 · Educação: ficha 89')}
+      ${listaDotacoes()}
+      ${temFicha ? '' : campo('Não sei a ficha: a Contabilidade vai indicar', 'proc.orcamento.contabilidadeIndica', { type: 'check', rr: 1 })}</section>
+      <section class="s-card"><h2>Natureza da despesa</h2>
+      ${opcoesRadio('proc.orcamento.elemento', [['consumo', 'Material de consumo', '3.3.90.30 – itens que acabam com o uso'], ['permanente', 'Equipamento ou material permanente', '4.4.90.52 – bens duráveis, patrimoniados'], ['servPJ', 'Serviço de terceiros', '3.3.90.39 – serviços prestados por empresa'], ['obras', 'Obras e instalações', '4.4.90.51 – construção, ampliação, instalação']], '', elementoPadrao(p.objeto.natureza))}</section>`;
+  },
+
   s_porque() {
     const d = R.proc.demanda;
     return `<section class="s-card">${campo('Qual problema existe hoje?', 'proc.demanda.necessidade', { type: 'textarea', rows: 7, req: true, rev: 'necessidade' })}
       ${ajuda('Responda: o que falta ou não funciona? Quem é afetado? Desde quando? Use números sempre que puder. Se houver motivos diferentes, escreva um por parágrafo, com um título curto: cada um vira um item numerado (3.1, 3.2…). Evite frases genéricas como "para atender às necessidades da Secretaria".', 'Requisitos Legais: O cercamento do aterro é condição da Licença de Operação da CETESB.<br><br>Segurança Escolar: A cerca do CIEM impede o acesso de pessoas estranhas à escola.')}</section>
-      <section class="s-card"><h2>Está no Plano de Contratações Anual (PCA)?</h2>${opcoesRadio('proc.demanda.pca', [['sim', 'Sim', 'A compra foi planejada no PCA'], ['nao', 'Não', 'Surgiu depois do PCA'], ['nao_elaborado', 'Não há PCA', 'O Município não elaborou PCA']], 'tres')}
-      ${d.pca === 'sim' ? campo('Referência no PCA (opcional)', 'proc.demanda.pcaRef') : ''}
-      ${d.pca === 'nao' ? campo('Por que a demanda não pode esperar o próximo PCA?', 'proc.demanda.pcaJust', { type: 'textarea', rows: 3, req: true, rev: 'justificativa' }) + `<div class="btns">${sugerir('proc.demanda.pcaJust', 'pcaJust')}</div>` : ''}</section>
       <section class="s-card">${campo('O que acontece se não comprar ou não contratar?', 'proc.demanda.consequencias', { type: 'textarea', rows: 3, rev: 'consequencias' })}
       ${ajuda('', 'Sem o material, a limpeza diária fica comprometida e as escolas podem ser autuadas pela Vigilância Sanitária.')}</section>`;
   },
@@ -158,6 +171,7 @@ const SVIEWS = {
     return `<section class="s-card"><h2>Onde e quando</h2>
       ${campo(compra ? 'Local de entrega' : 'Local de execução', 'proc.execucao.local', { req: true, ph: 'Almoxarifado central, Rua…' })}
       <div class="grid2">${campo('Prazo para começar (opcional)', 'proc.execucao.prazoInicio', { ph: compra ? '5 dias após o empenho' : '15 dias após a Ordem de Serviço' })}${campo(compra ? 'Prazo de entrega' : 'Prazo de execução', 'proc.execucao.prazo', { req: true, ph: compra ? '10 dias após o pedido' : '6 (seis) meses' })}</div>
+      ${compra ? `<div class="field"><span class="lbl-prev">Como será a entrega?</span>${opcoesRadio('proc.objeto.entregaImediata', [['true', 'Entrega única', 'Tudo de uma vez, em até 30 dias do pedido'], ['false', 'Entregas parceladas', 'Aos poucos, conforme a necessidade, durante o contrato']], 'duas')}</div>` : ''}
       ${campo('É um serviço ou fornecimento que se repete todo mês?', 'proc.objeto.continuo', { type: 'check', rr: 1, hint: 'Ex.: limpeza, coleta, locação mensal. Compras com entrega única e serviços com fim definido não são contínuos.' })}
       ${p.objeto.continuo ? campo('Por quantos meses?', 'proc.objeto.vigenciaMeses', { type: 'number' }) : (compra && p.objeto.entregaImediata ? '' : campo('Vigência do contrato', 'proc.execucao.vigenciaTexto', { ph: '12 (doze) meses' }))}</section>
       <section class="s-card">${campo(compra ? 'Cuidados na entrega (opcional)' : 'Como o serviço deve ser executado (opcional)', 'proc.execucao.metodologia', { type: 'textarea', rows: 5, rev: 'lista' })}
@@ -203,6 +217,8 @@ const SVIEWS = {
       <div class="btns">${importar}</div></section>
       ${cards}
       <div class="btns"><button class="btn" data-act="s-add-orc">+ Adicionar orçamento</button></div>
+      ${p.itens.some(it => { const n = estat(it).n; return n > 0 && n < 3; }) ? `<section class="s-card">${campo('Algum item ficou com menos de 3 orçamentos. Explique por quê', 'proc.pesquisa.justMenos3', { type: 'textarea', rows: 3, req: true, rev: 'justificativa' })}
+      ${ajuda('', 'Foram consultadas 5 empresas do ramo na região; apenas 2 responderam no prazo, conforme os pedidos de orçamento enviados e anexados.')}</section>` : ''}
       <section class="s-card"><h2>Resumo dos preços</h2><div class="tabwrap"><table class="t"><thead><tr><th>Item</th><th>Descrição</th><th>Orçamentos</th><th>Menor</th><th>Referência</th><th>Total</th></tr></thead><tbody>${resumo}</tbody>
       <tfoot><tr><td></td><td><b>Total estimado</b></td><td></td><td></td><td></td><td class="num"><b>${fmtBRL(estimativa(p))}</b></td></tr></tfoot></table></div>
       <p class="hint">Preço de referência = mediana dos orçamentos de cada item (o valor do meio). Ela não é puxada por um orçamento muito alto ou muito baixo.</p></section>`;
@@ -212,9 +228,7 @@ const SVIEWS = {
     return `<section class="s-card">${ajuda('Escolha servidores que conheçam o assunto e que não tenham parentesco nem negócio com as empresas. Gestor e fiscal técnico não devem ser a mesma pessoa.', '')}</section>${blocoFiscais(true)}`;
   },
 
-  s_dotacao() {
-    return `<section class="s-card"><h2>Dotação orçamentária</h2>${ajuda('Se mais de uma secretaria vai usar o objeto, informe a ficha de cada uma. Elas dividem a despesa.', 'Meio Ambiente: ficha 331 · Educação: ficha 89')}${listaDotacoes()}</section>`;
-  },
+
 
   s_gerar() {
     const p = R.proc, { pecas } = pecasAtuais();
@@ -230,14 +244,17 @@ const SVIEWS = {
       [orcsOk >= 3, `Pelo menos 3 orçamentos com preço em todos os itens (você tem ${orcsOk})`, 's_orcs'],
       [has(p.execucao.gestor) && has(p.execucao.fiscal), 'Gestor e fiscal técnico indicados', 's_fiscal'],
       [!has(p.execucao.gestor) || p.execucao.gestor.trim() !== String(p.execucao.fiscal || '').trim(), 'Gestor e fiscal técnico são pessoas diferentes', 's_fiscal'],
-      ...(p.demanda.pca === 'nao' ? [[has(p.demanda.pcaJust), 'Justificativa da demanda fora do PCA', 's_porque']] : []),
+      [dotacoesValidas(p).some(x => has(x.ficha)) || p.orcamento.contabilidadeIndica, 'Dotação orçamentária (ficha) ou indicação pela Contabilidade', 's_plan'],
+      [has(p.execucao.gestorCpf) && has(p.execucao.fiscalCpf), 'CPF do gestor e do fiscal técnico', 's_fiscal'],
       ...(() => { const g = avisosRedacao(p); return [[!g.length, g.length ? `Redação genérica em ${g.length} campo(s): veja as recomendações abaixo de cada um` : 'Textos sem redação genérica', g.length ? g[0].etapa : 's_porque']]; })()
     ];
-    const faltam = checks.filter(c => !c[0]).length;
+    const pend = pendenciasDocs(pecas);
+    const faltam = checks.filter(c => !c[0]).length + pend.length;
     const docs = pecas.map((d, i) => `<div class="doc-row"><span class="sg">${d.sigla}</span><div class="tt"><b>${esc(d.titulo)}</b><span>${d.pendencias ? d.pendencias + ' campo(s) em amarelo para completar' : 'pronto'}</span></div>
       <div class="btns"><button class="btn small" data-act="ver" data-i="${i}">Ver</button><button class="btn small pri" data-act="baixar" data-i="${i}">Baixar</button></div></div>`).join('');
     return `<section class="s-card"><h2>${faltam ? `Faltam ${faltam} ${faltam > 1 ? 'pontos' : 'ponto'}` : 'Tudo preenchido'}</h2>
       <ul class="checks">${checks.map(([ok, t, passo]) => `<li class="${ok ? 'ok' : 'falta'}"><span class="ic" aria-hidden="true">${ok ? '✓' : '!'}</span><span>${t}</span>${ok ? '' : `<button class="btn small" data-spasso="${passo}">Corrigir</button>`}</li>`).join('')}</ul>
+      ${pend.length ? `<h2 class="papel" style="margin-top:6px">Ainda sairia em amarelo nos documentos</h2><ul class="checks">${pend.map(x => `<li class="falta"><span class="ic" aria-hidden="true">!</span><span>${esc(x.label)} <small class="hint">(${x.docs.join(', ')})</small></span><button class="btn small" data-spasso="${x.etapa}">Corrigir</button></li>`).join('')}</ul>` : '<p class="hint ok-doc">Nenhum campo em amarelo: os documentos saem completos, prontos para revisão e assinatura.</p>'}
       ${faltam ? '<p class="hint">Você pode baixar os documentos mesmo assim. O que faltar sai destacado em amarelo.</p>' : ''}
       <p class="hint">Erros de digitação e acentuação conhecidos são corrigidos automaticamente nos documentos. O que é genérico, só você pode completar.</p></section>
       ${AVISO_REVISAO}
@@ -249,6 +266,32 @@ const SVIEWS = {
       <section class="s-card"><div class="btns"><button class="btn" data-act="novo-proc">Começar um novo pedido</button><button class="btn" data-act="dup-proc">Copiar este pedido</button><button class="btn ghost" data-act="del-proc">Excluir este pedido</button></div></section>`;
   }
 };
+
+/* Cada campo que sairia em amarelo nas peças aponta para o passo que o preenche */
+const PH_ETAPA = [
+  [/gestor|fiscal|CPF/i, 's_fiscal'],
+  [/PCA|ficha|dotação/i, 's_plan'],
+  [/vigência|local de entrega|prazo de entrega/i, 's_entrega'],
+  [/subcontrat|agendamento|obrigatoriedade/i, 's_exig'],
+  [/preço|orçamento/i, 's_orcs'],
+  [/memória/i, 's_quanto'],
+  [/necessidade/i, 's_porque'],
+  [/parcelamento|agrupamento|lote|não informado|objeto|item/i, 's_oque'],
+  [/e-mail/i, 's_pedido'],
+  [/responsável|cargo|secretaria|unidade/i, 's_quem']
+];
+function pendenciasDocs(pecas) {
+  const mapa = new Map();
+  const ver = (t, sigla) => (String(t || '').match(/⟦[^⟧]*⟧/g) || []).forEach(m => {
+    const label = m.slice(1, -1).split(':')[0].trim();
+    const k = label.toLowerCase();
+    if (!mapa.has(k)) mapa.set(k, { label: label.charAt(0).toUpperCase() + label.slice(1), docs: [], etapa: (PH_ETAPA.find(([re]) => re.test(label)) || [0, 's_gerar'])[1] });
+    const x = mapa.get(k); if (!x.docs.includes(sigla)) x.docs.push(sigla);
+  });
+  pecas.forEach(d => d.blocks.forEach(b => { ['text', 'nome', 'cargo'].forEach(c => ver(b[c], d.sigla)); (b.rows || []).forEach(r => r.forEach(c => ver(c, d.sigla))); if (b.foot) b.foot.forEach(c => ver(c, d.sigla)); }));
+  const ordem = SPASSOS.map(x => x.id);
+  return [...mapa.values()].sort((a, b) => ordem.indexOf(a.etapa) - ordem.indexOf(b.etapa));
+}
 
 function renderSimples() {
   const i = SPASSOS.findIndex(x => x.id === SPASSO), s = SPASSOS[i], p = R.proc;

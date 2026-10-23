@@ -555,6 +555,7 @@ function toast(t) { const el = $('#toast'); el.textContent = t; el.hidden = fals
 let railT;
 function agendarRail() { if (modo() === 'simples') return; clearTimeout(railT); railT = setTimeout(() => { renderRail(); renderPassos(); }, 250); }
 function valorDe(el) {
+  if (el.type === 'radio' && (el.value === 'true' || el.value === 'false')) return el.value === 'true';
   if (el.dataset.type === 'bool') return el.checked;
   if (el.dataset.type === 'num') return el.value === '' ? '' : num(el.value);
   return el.value;

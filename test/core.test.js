@@ -195,7 +195,8 @@ test('ETP, TR e Termo seguem a estrutura do modelo de Iacanga', () => {
   assert.equal(secs('etp').length, 15);
   assert.equal(secs('etp')[0], '01 – DA UNIDADE REQUISITANTE');
   assert.equal(secs('etp')[14], '15 – POSICIONAMENTO CONCLUSIVO E ESCOLHA DA SOLUÇÃO');
-  assert.equal(secs('tr').length, 10);
+  assert.equal(secs('tr')[9], '10 – ADEQUAÇÃO ORÇAMENTÁRIA');
+  assert.equal(secs('tr')[10], '11 – SANÇÕES ADMINISTRATIVAS', 'sem contrato, o TR traz as sanções');
   assert.equal(secs('tr')[5], '06 – GESTÃO E FISCALIZAÇÃO');
   const txt = JSON.stringify(pecas);
   assert.ok(txt.includes('464.XXX.XXX-08') && !txt.includes('464.358.458-08'), 'CPF mascarado');
@@ -216,4 +217,17 @@ test('texto livre vira cláusulas e marcadores', () => {
 test('serviço de engenharia sem tabela oficial gera alerta do art. 23, §2º', () => {
   const cfg = C.cfgPadrao(), p = clone(C.procExemplo()); p.objeto.natureza = 'eng_comum';
   assert.ok(C.analisar(p, cfg).alertas.some(a => /SINAPI/.test(a.t)));
+});
+
+test('pedido completo pelo modo Secretaria não deixa nada em amarelo', () => {
+  const cfg = C.cfgPadrao(), p = clone(C.procExemplo());
+  Object.assign(p.demanda, { responsavel: 'Fulano de Tal', cargo: 'Diretor' });
+  Object.assign(p.execucao, { gestor: 'Fulano', gestorCargo: 'Secretário', gestorCpf: '29005735805', fiscal: 'Beltrano', fiscalCargo: 'Diretor', fiscalCpf: '46435845808' });
+  p.orcamento.dotacoes = [{ orgao: 'Meio Ambiente', ficha: '331' }];
+  p.pesquisa.justMenos3 = 'Apenas dois viveiros da região produzem a espécie.';
+  const { pecas } = C.montarPecas(p, cfg, { simples: true });
+  const pend = JSON.stringify(pecas).match(/⟦[^⟧]*⟧/g) || [];
+  assert.deepEqual(pend, []);
+  const tr = JSON.stringify(pecas.find(d => d.id === 'tr'));
+  assert.ok(tr.includes('Obrigações da Contratada') && tr.includes('3.3.90.30') && tr.includes('ficha 331'));
 });
